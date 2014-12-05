@@ -12,7 +12,7 @@ lint:
         #    int. (For help on parse errors, see splint -help parseerrors.)
         #    *** Cannot continue.
         #    make: *** [splint] Error 1
-	splint +posixlib +skip-sys-headers -I/usr/include -I/usr/local/include retail
+	splint +posix-lib +skip-sys-headers -unrecog -I/usr/include -I/usr/local/include retail
 
 clean:
 	rm -f retail

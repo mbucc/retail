@@ -1,47 +1,41 @@
-/*---------------------------------------------------------------------------------*
-* Log tail utility                                                                 *
-*----------------------------------------------------------------------------------*
-*  logtail.c -- ASCII file tail program that remembers last position.              *
-*                                                                                  *
-*  Author:                                                                         *
-*  Ross Moffatt <ross.stuff@telstra.com>                                           *
-*                                                                                  *
-*  Please send me any hacks/bug fixes you make to the code. All comments are       *
-*  welcome!                                                                        *
-*                                                                                  *
-* Modified from the utility: logtail                                               *
-* Written by Craig H. Rowland <crowland@psionic.com>                               *
-* Based upon original utility: retail (c)Trusted Information Systems               *
-* Including the utility: dirname                                                   *
-* Written by Piotr Domagalski <szalik@szalik.net>                                  *
-* This program is covered by the GNU license.                                      *
-*                                                                                  *
-* Usage: logtail [log_file] <offset_file>                                          *
-*    or: logtail [-l log_file] <-o offset_file> <-d rolled_log_directory>          *
-*      : <-f rolled_log_pattern> <-t> <-b> <-r buffer size> <-s>                   *
-*    or: logtail -h                                                                *
-*                                                                                  *
-* This program covered by the GNU License. This program is free to use as long as  *
-* the above copyright notices are left intact.                                     *
-* This program has no warranty of any kind.                                        *
-*                                                                                  *
-* To compile:                                                                      *
-* Unix: gcc -o logtail logtail.c                                                   *
-* add -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 for large file aware build        *
-*                                                                                  *
-*  VERSION 2.0 : Log roll aware                                                    *
-*  VERSION 2.1 : Fixes and Windows compatibility                                   *
-*  VERSION 2.11: Minor help text and layout update                                 *
-*  VERSION 3.0 : Path related fixes                                                *
-*  VERSION 3.1 : Changed -? to -h, DOS_ to D_OS_; added -t, 32bit file too big chk *
-*  VERSION 3.11: Fixed 32bit file too big chk bug                                  *
-*  VERSION 3.2 : fseek(o),ftell(o),fgets to fgetpos,fsetpos,fgetc                  *
-*                fgets,fprintf to fread,fwrite added -b -r -s options              *
-*                fixed win extra line feed out bug                                 *
-*  VERSION 3.21 : usage function, 32/64 bit aware, added debug, changed the logic. *
-*  VERSION 4.0.0  Remove _OS_DOS support.                                          *
-*----------------------------------------------------------------------------------*/
+/**
+ *  retail.c -- ASCII file tail program that remembers last position.
+ *
+ *  Author:
+ *  Ross Moffatt <ross.stuff@telstra.com>
+ *  Mark Bucciarelli <mkbucc@gmail.com>
+ *
+ * Modified from the utility: retail
+ * Written by Craig H. Rowland <crowland@psionic.com>
+ * Based upon original utility: retail (c)Trusted Information Systems
+ * Including the utility: dirname
+ * Written by Piotr Domagalski <szalik@szalik.net>
+ * This program is covered by the GNU license.
+ *
+ * This program covered by the GNU License. This program is free to use as long as
+ * the above copyright notices are left intact.
+ * This program has no warranty of any kind.
+ *
+ * To compile:
+ * Unix: gcc -o retail retail.c
+ * add -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 for large file aware build
+ *
+ *  VERSION 2.0 : Log roll aware
+ *  VERSION 2.1 : Fixes and Windows compatibility
+ *  VERSION 2.11: Minor help text and layout update
+ *  VERSION 3.0 : Path related fixes
+ *  VERSION 3.1 : Changed -? to -h, DOS_ to D_OS_; added -t, 32bit file too big chk
+ *  VERSION 3.11: Fixed 32bit file too big chk bug
+ *  VERSION 3.2 : fseek(o),ftell(o),fgets to fgetpos,fsetpos,fgetc
+ *                fgets,fprintf to fread,fwrite added -b -r -s options
+ *                fixed win extra line feed out bug
+ *  VERSION 3.21 : usage function, 32/64 bit aware, added debug, changed the logic.
+ *  VERSION 4.0.0  Remove _OS_DOS support.
+ */
 
+
+
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -374,7 +368,8 @@ int check_log(char* logname, char* offset_filename, char* oldlog_directory, char
     fread(&offset_position,sizeof(offset_position),1,offset_output);
     fread(&filesize_buffer,sizeof(filesize_buffer),1,offset_output);
     /* We're done, clean up */
-    fclose(offset_output);
+    if (0 != fclose(offset_output))
+        err(EXIT_FAILURE, NULL);
   /* can't read the file? then assume no offset file exists */
   }else{
     fgetpos (input,&offset_position);
@@ -448,7 +443,8 @@ int check_log(char* logname, char* offset_filename, char* oldlog_directory, char
         charsread = fread (buffer,1,readbuffersize,old_input);
         if ( suppressflag == 0 ) fwrite (buffer,1,charsread,stdout);
       } while (charsread == readbuffersize);
-      fclose(old_input); // clean up
+      if (0 != fclose(old_input))
+        err(EXIT_FAILURE, NULL);
     }
     // set the offset back to zero and off we go looking at the current file
     // reset offset and report everything
@@ -509,7 +505,8 @@ int check_log(char* logname, char* offset_filename, char* oldlog_directory, char
         charsread = fread (buffer,1,readbuffersize,old_input);
         if ( suppressflag == 0 ) fwrite (buffer,1,charsread,stdout);
       } while (charsread == readbuffersize);
-      fclose(old_input); // clean up
+      if (0 != fclose(old_input))
+        err(EXIT_FAILURE, NULL);
     }
   
     // set the offset back to zero and off we go looking at the current file
@@ -528,7 +525,8 @@ int check_log(char* logname, char* offset_filename, char* oldlog_directory, char
       if ( suppressflag == 0 ) fwrite(buffer,1,charsread,stdout);
     } while (charsread == readbuffersize);
   fgetpos(input,&offset_position);
-  fclose(input);
+  if (0 != fclose(input))
+        err(EXIT_FAILURE, NULL);
 
   // after we are done we need to write the new offset
   // if testflag set, skip writing out the offset file
@@ -545,8 +543,10 @@ int check_log(char* logname, char* offset_filename, char* oldlog_directory, char
         // write it
         fwrite(&file_stat.st_ino,sizeof(file_stat.st_ino),1,offset_output);
         fwrite(&offset_position,sizeof(offset_position),1,offset_output);
-        fwrite(&file_stat.st_size,sizeof(file_stat.st_size),1,offset_output);
-        fclose(offset_output);
+        if (1 != fwrite(&file_stat.st_size,sizeof(file_stat.st_size),1,offset_output))
+            errx(EXIT_FAILURE, "write failed");
+    if (0 != fclose(offset_output))
+        err(EXIT_FAILURE, NULL);
       }
     }
   }
@@ -558,11 +558,11 @@ void usage(int debugflag)
 {
 struct stat test_stat;
 
-printf("\nlogtail\n");
-printf("\nUsage: logtail [log_file] <offset_file>");
-printf("\n   or: logtail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
+printf("\nretail\n");
+printf("\nUsage: retail [log_file] <offset_file>");
+printf("\n   or: retail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
 printf("\n     : <-f rolled_log_filename> <-r> <-s> <-t> <-b>");
-printf("\n   or: logtail -h");
+printf("\n   or: retail -h");
 printf("\n\n Required Parameters:");
 printf("\n      [log_file]           :the log file to open and tail output.");
 printf("\n or   [-l log_file]");
@@ -579,14 +579,14 @@ printf("\n   -s                      : suppress output, update offset file only"
 printf("\n   -t                      : test, no update to offset file, output only");
 printf("\n   -b                      : deBug output");
 printf("\n   -h                      : this help");
-printf("\n\nlogtail will read in a file and output to stdout, unless the -s option");
+printf("\n\nretail will read in a file and output to stdout, unless the -s option");
 printf("\n is specified. allowing a quick first time output of the <offset_file>.");
-printf("\n\nAfter outputing the file, logtail will create a file called");
+printf("\n\nAfter outputing the file, retail will create a file called");
 printf("\n<offset_file> that will contain the decimal offset and inode of the file");
 printf("\nin ASCII format unless the -t option is specified.  The -t option allows");
-printf("\nfor test runs without changing the where logtail reads the log from each");
-printf("\ntime logtail is called by not updating/creating the offset file.");
-printf("\n\nNext time logtail is run on [log_file] the <offset_file> is read and");
+printf("\nfor test runs without changing the where retail reads the log from each");
+printf("\ntime retail is called by not updating/creating the offset file.");
+printf("\n\nNext time retail is run on [log_file] the <offset_file> is read and");
 printf("\noutput begins at the saved offset. The -b option outputs debug messages");
 printf("\nto stderr. The -r option specifies the log file read buffer, in bytes,");
 printf("\nvariation may improve performance.");
@@ -606,7 +606,7 @@ if ( debugflag != 0 ) printf("\nSize of fpos_t = %zd bytes",sizeof(fpos_t));
 if ( debugflag != 0 ) printf("\nCompiled with DEBUG on");
 
 printf("\n\nWritten by Ross Moffatt <ross.stuff@telstra.com>");
-printf("\nModified from the utility: logtail");
+printf("\nModified from the utility: retail");
 printf("\nWritten by Craig H. Rowland <crowland@psionic.com>");
 printf("\nBased upon original utility: retail (c)Trusted Information Systems");
 printf("\nIncluding the utility: dirname");
@@ -620,15 +620,15 @@ printf("\n program has no warranty of any kind.\n");
 
 void short_usage(void)
 {
-printf("\n  Usage: logtail [log_file] <offset_file>");
-printf("\n     or: logtail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
+printf("\n  Usage: retail [log_file] <offset_file>");
+printf("\n     or: retail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
 printf("\n       : <-f rolled_log_filename> <-r> <-s> <-t> <-b>");
-printf("\n     or: logtail -h\n");
+printf("\n     or: retail -h\n");
   printf("\n");
 }
 
 /* ------------------------------------------------------------------*/
-/* logtail.c -- ASCII file tail program that remembers last position.*/
+/* retail.c -- ASCII file tail program that remembers last position.*/
 /*                                                                   */
 /* Author:                                                           */
 /* Craig H. Rowland <crowland@psionic.com> 15-JAN-96                 */
@@ -643,8 +643,8 @@ printf("\n     or: logtail -h\n");
 /*                                                                   */
 /* This program will read in a standard text file and create an      */
 /* offset marker when it reads the end. The offset marker is read    */
-/* the next time logtail is run and the text file pointer is moved   */
-/* to the offset location. This allows logtail to read in the next   */
+/* the next time retail is run and the text file pointer is moved   */
+/* to the offset location. This allows retail to read in the next   */
 /* lines of data following the marker. This is good for marking log  */
 /* files for automatic log file checkers to monitor system events.   */
 /*                                                                   */
@@ -653,10 +653,10 @@ printf("\n     or: logtail -h\n");
 /* program has no warranty of any kind.                              */
 /*                                                                   */
 /* To compile as normal:                                             */
-/*gcc -o logtail logtail.c                                           */
+/*gcc -o retail retail.c                                           */
 /*                                                                   */
 /* To compile as large file aware:                                   */
-/*gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -o logtail logtail.c*/
+/*gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -o retail retail.c*/
 /*                                                                   */
 /* VERSION 1.1: Initial release                                      */
 /*                                                                   */
