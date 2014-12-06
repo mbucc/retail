@@ -52,14 +52,11 @@
  * We set it to 1024 (OpenBSD's value).
  */
 #define MY_PATH_MAX 1024
-#define VERSION "4.0.0"
 #define BUFSZ 4096
 #define USAGE "retail [-o <offset filename>] <log filename>"
 
 /* Prototypes for functions */
-static char    *nondirname(char *path);
 static int	check_log(const char *logfn, const char *offsetfn);
-static char    *right_string(char *my_path_file, int start_pos);
 
 /*
  * Generate the offset filename for the given log file.
@@ -146,48 +143,8 @@ main(int argc, char *argv[])
 
 /* a function to return the right part of a string from a */
 /* given number of character into the string */
-char           *
-right_string(char *my_path_file, int start_pos)
-{
-	char           *resultstr;
-	char           *tempstr;
-	int		counter = 0;
-
-	if (start_pos <= 0)
-		start_pos = 1;	/* Minimum length */
-	resultstr = (char *)malloc(start_pos + 1);
-	tempstr = resultstr;
-
-	if (my_path_file) {
-		while (*my_path_file++)
-			counter++;
-		while (start_pos-- >= 0 && counter-- >= 0)
-			my_path_file--;
-		if (*my_path_file) {
-			while (*my_path_file)
-				*tempstr++ = *my_path_file++;
-		}
-	}
-	*tempstr = '\0';
-	return resultstr;
-}
 
 
-char           *
-nondirname(char *path)
-{
-	int		i;
-	char           *tempstr_ptr;
-
-	i = strlen(path) + 1;
-	while ((path[i - 1] != '/') && (i > 1))
-		i--;
-	if ((path[i - 1] != '/') && (i == 1))
-		i = i - 1;
-	tempstr_ptr = right_string(path, strlen(path) - i);
-	strcpy(path, tempstr_ptr);
-	return path;
-}
 
 /*
  * Output any new lines added to log since last run,
