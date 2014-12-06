@@ -8,9 +8,6 @@
  * Modified from the utility: retail
  * Written by Craig H. Rowland <crowland@psionic.com>
  * Based upon original utility: retail (c)Trusted Information Systems
- * Including the utility: dirname
- * Written by Piotr Domagalski <szalik@szalik.net>
- * This program is covered by the GNU license.
  *
  * This program covered by the GNU License. This program is free to use as long as
  * the above copyright notices are left intact.
@@ -33,8 +30,6 @@
  *  VERSION 4.0.0  Remove _OS_DOS support.
  */
 
-
-
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,185 +39,101 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <sysexits.h>
+#include <libgen.h>
 
-
-
-#define MAX 2048
-#define MY_MAX_PATH 2048
+/*
+ * PATH_MAX seems broken, here's a choice quote from
+ * http://insanecoding.blogspot.com/2007/11/pathmax-simply-isnt.html:
+ *
+ *	Since a path can be longer than PATH_MAX, the define is useless,
+ *	writing code based off of it is wrong, and the functions that require
+ *	it are broken.
+ *
+ * We set it to 1024 (OpenBSD's value).
+ */
+#define MY_PATH_MAX 1024
 #define VERSION "4.0.0"
+#define BUFSZ 4096
+#define USAGE "retail [-o <offset filename>] <log filename>"
 
 /* Prototypes for functions */
-static char    *dirname(char *path);
 static char    *nondirname(char *path);
-static int	check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int readbuffersize, int suppressflag);
-static void	usage();
-static void	short_usage(void);
+static int	check_log(const char *logfn, const char *offsetfn);
 static char    *right_string(char *my_path_file, int start_pos);
+/*
+ * Generate the offset filename for the given log file.
+ *
+ * Assumes the caller has already made sure log filename is not too long.
+ */
+char *
+logfn_to_offsetfn(const char *logfn)
+{
+	static char	 rval[MY_PATH_MAX] = {0};
+	char		*buf = 0;
 
-/* It all starts here */
-int 
+	/*
+	 * On Solaris, HP and AIX dirname() and basename() modify their argument.
+	 */
+	if (NULL == (buf = strdup(logfn)))
+		errx(EXIT_FAILURE, "strdup failed copying log filename");
+	strcpy(rval, dirname(buf));
+	free(buf);
+	strcat(rval, "/offset.");
+	if (NULL == (buf = strdup(logfn)))
+		errx(EXIT_FAILURE, "strdup failed copying log filename");
+	strcat(rval, basename(buf));
+	free(buf);
+	return rval;
+}
+
+int
 main(int argc, char *argv[])
 {
-	int		status = 1;	/* Set status flag to error */
-	char		offset_filename[MAX], log_filename[MAX], oldlog_dir[MAX],
-			oldlog_pat    [MAX], tempstr[MAX];
-	char           *tempstr_ptr;
-	char		ch;
-	int		i, readbuffersize = 4096,	/* default read buffer
-									 * size */
-			suppressflag = 0;	/* default output stuff */
+	char		logfn[MY_PATH_MAX] = {0};
+	char		offsetfn[MY_PATH_MAX] = {0};
+	char		*p;
+	int		i;
 
-	/* ok now, we gotta sorta outa the clps */
-	strcpy(log_filename, "");
-	strcpy(offset_filename, "");
-	strcpy(oldlog_dir, "");
-	strcpy(oldlog_pat, "");
-
-	/* any clps, too few, too many, well get outta here */
-	if ((argc == 1) || (argc > 14)) {
-		short_usage();
-		exit(EXIT_FAILURE);
-	}
-	if ((strcmp(argv[1], "-h") == 0)
-	    ||(strcmp(argv[1], "-l") == 0)
-	    ||(strcmp(argv[1], "-o") == 0)
-	    ||(strcmp(argv[1], "-d") == 0)
-	    ||(strcmp(argv[1], "-f") == 0)
-	    ||(strcmp(argv[1], "-r") == 0)
-	    ||(strcmp(argv[1], "-s") == 0))
-	{
-		for (i = 1; i < (argc); ++i) {
-			strcpy(tempstr, "");
-			strcat(tempstr, argv[i]);
-			if ((tempstr[0] == '-') && (strlen(argv[i]) == 2)) {
-				ch = tempstr[1];
-
-				switch (ch) {
-				case 'd':
-					if (argc - 1 > i) {
-						if ((strlen(argv[i + 1])) > MY_MAX_PATH - 8) {
-							fprintf(stderr, "ERROR 118 - Log directory name %s is too long.\n", argv[i + 1]);
-							exit(EXIT_FAILURE);
-						} else {
-							strcpy(oldlog_dir, argv[i + 1]);
-							i++;
-						}
-					}
-					break;
-				case 'f':
-					if (argc - 1 > i) {
-						if ((strlen(argv[i + 1])) > MY_MAX_PATH - 8) {
-							fprintf(stderr, "ERROR 132 - Log pattern name %s is too long.\n", argv[i + 1]);
-							exit(EXIT_FAILURE);
-						} else {
-							strcpy(oldlog_pat, argv[i + 1]);
-							i++;
-						}
-					}
-					break;
-				case 'h':
-					usage();
-					exit(EXIT_FAILURE);
-				case 'l':
-					if (argc - 1 > i) {
-						if ((strlen(argv[i + 1])) > MY_MAX_PATH - 8) {
-							fprintf(stderr, "ERROR 150 - Log filename %s is too long.\n", argv[i + 1]);
-							exit(EXIT_FAILURE);
-						} else {
-							strcpy(log_filename, argv[i + 1]);
-							i++;
-						}
-					}
-					break;
-				case 'o':
-					if (argc - 1 > i) {
-						if ((strlen(argv[i + 1])) > MY_MAX_PATH - 8) {
-							fprintf(stderr, "ERROR 164 - Offset filename %s is too long.\n", argv[i + 1]);
-							exit(EXIT_FAILURE);
-						} else {
-							strcpy(offset_filename, argv[i + 1]);
-							i++;
-						}
-					}
-					break;
-				case 'r':
-					if (argc - 1 > i) {
-						readbuffersize = atoi(argv[i + 1]);
-						if ((readbuffersize < 1) || (readbuffersize > 1048576)) {
-							fprintf(stderr, "ERROR 170 - Read Buffer %s is too small or too large.\n", argv[i + 1]);
-							exit(EXIT_FAILURE);
-						}
-						i++;
-					}
-					break;
-				case 's':
-					suppressflag = 1;
-					break;
-				}
-			}
-
+	switch (argc) {
+	case 2:
+		p = argv[1];
+		if (*p == '-')
+			errx(EXIT_FAILURE, USAGE);
+		if (strlen(p) > MY_PATH_MAX - strlen("/offset.") - 1)
+			errx(EXIT_FAILURE, "log file name is too long, max is %lu", MY_PATH_MAX - strlen("/offset.") - 1);
+		strcpy(logfn, p);
+		strcpy(offsetfn, logfn_to_offsetfn(logfn));
+		break;
+	/*
+	 * retail -o $HOME/var/db/retail/ /var/log/syslog
+	 */
+	case 4:
+		p = argv[1];
+		if (*p != '-' || (*p && *(p + 1) != 'o'))
+			errx(EXIT_FAILURE, USAGE);
+		p = argv[3];
+		if (strlen(p) > MY_PATH_MAX - 1)
+			errx(EXIT_FAILURE, "log filename is too long, max is %d", MY_PATH_MAX);
+		strcpy(logfn, p);
+		p = argv[2];
+		if (p[strlen(p) - 1] == '/') {
+			if (strlen(p) > MY_PATH_MAX - strlen("/offset.") - 1)
+				errx(EXIT_FAILURE, "log file name is too long, max is %lu", MY_PATH_MAX - strlen("/offset.") - 1);
+			strcpy(offsetfn, logfn_to_offsetfn(logfn));
 		}
-	} else {
-		if (argc == 2) {
-			/* only program name and log name supplied */
-			if ((strlen(argv[1])) > MY_MAX_PATH - 8) {
-				fprintf(stderr, "ERROR 191 - Log filename %s is too long.\n", argv[1]);
-				exit(EXIT_FAILURE);
-			} else
-				strcpy(log_filename, argv[1]);
+		else {
+			strcpy(offsetfn, p);
+			if (strlen(p) > MY_PATH_MAX -1)
+				errx(EXIT_FAILURE, "offset filename too long, max is %d", MY_PATH_MAX);
 		}
-		if (argc == 3) {
-			/* program name, log name and offset name supplied */
-			if ((strlen(argv[1])) > MY_MAX_PATH - 8) {
-				fprintf(stderr, "ERROR 202 - Log filename %s is too long.\n", argv[1]);
-				exit(EXIT_FAILURE);
-			} else
-				strcpy(log_filename, argv[1]);
-			if ((strlen(argv[2])) > MY_MAX_PATH - 8) {
-				fprintf(stderr, "ERROR 209 - Offset filename %s is too long.\n", argv[2]);
-				exit(EXIT_FAILURE);
-			} else
-				strcpy(offset_filename, argv[2]);
-		}
+		break;
+	default:
+		errx(EXIT_FAILURE, USAGE);
 	}
 
-	/* ok, lets see we got everything . . . */
-	if (strcmp(log_filename, "") == 0) {
-		short_usage();
-		exit(EXIT_FAILURE);
-	}
-	if (strcmp(offset_filename, "") == 0) {
-		strcpy(tempstr, log_filename);
-		strcpy(offset_filename, dirname(tempstr));
-		strcpy(tempstr, log_filename);
-		strcat(offset_filename, "/offset.");
-		strcat(offset_filename, nondirname(tempstr));
-	}
-	if (strcmp(oldlog_dir, "") == 0) {
-		/* work out the directory from the filename */
-		strcpy(tempstr, log_filename);
-		tempstr_ptr = dirname(tempstr);
-		strcpy(oldlog_dir, tempstr_ptr);
-	}
-	if (strcmp(oldlog_pat, "") == 0) {
-		strcpy(tempstr, log_filename);
-		strcpy(oldlog_pat, nondirname(tempstr));
-	}
-	/* Make sure the old log pattern is just a filename and no path */
-	i = strlen(oldlog_pat) + 1;
-	while ((oldlog_pat[i - 1] != '/') && (i > 1))
-		i--;
-	if ((oldlog_pat[i - 1] != '/') && (i == 1))
-		i = i - 1;
-	tempstr_ptr = right_string(oldlog_pat, strlen(oldlog_pat) - i);
-	strcpy(oldlog_pat, tempstr_ptr);
+	check_log(logfn, offsetfn);
 
-	status = check_log(log_filename, offset_filename, oldlog_dir, oldlog_pat, readbuffersize, suppressflag);	/* check the logs */
-
-	if (status == 0)
-		exit(EXIT_SUCCESS);
-	else
-		exit(EXIT_FAILURE);
+	return 0;
 }
 
 /* Called functions follow . . .  */
@@ -255,23 +166,6 @@ right_string(char *my_path_file, int start_pos)
 	return resultstr;
 }
 
-/* a function to return the path from a path/filename */
-char           *
-dirname(char *path)
-{
-	int		i;
-
-	i = strlen(path) + 1;
-	while ((path[i - 1] != '/') && (i > 1)) {
-		i--;
-	}
-	if ((path[i - 1] != '/') && (i == 1)) {
-		path = ".";
-		return path;
-	}
-	path[i - 1] = '\0';
-	return path;
-}
 
 char           *
 nondirname(char *path)
@@ -289,20 +183,25 @@ nondirname(char *path)
 	return path;
 }
 
-/* a function to check a log file */
-int 
-check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int readbuffersize, int suppressflag)
+/*
+ * Output any new lines added to log since last run,
+ * and update offset.
+ */
+int
+check_log(const char *logfn, const char *offsetfn)
 {
 	FILE           *input,	/* Value user supplies for input file */
 	               *old_input,	/* Found filename log rolled to */
 	               *offset_output;	/* name of the offset output file */
 
-	struct stat	file_stat, file_stat_old;
+	struct stat	logfile_stat, logfile_stat_old;
 
-	char		old_logfile[MAX],	/* Moved log file name */
-			old_logpathfile[MAX];	/* Moved log path/file name */
+	char		old_logfn[MY_PATH_MAX];
+	char		tmpfn[MY_PATH_MAX];
+	char		logdir[MY_PATH_MAX] = {0};
+	char		logbasefn[MY_PATH_MAX] = {0};
 
-	char           *buffer;
+	char           *buf = 0;
 
 	DIR            *dp;
 	struct dirent  *ep;
@@ -314,101 +213,114 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 	int		charsread = 0;
 
 #if _FILE_OFFSET_BITS == 64
-	long long	inode_buffer = 0, filesize_buffer = 0;
+	long long	inode = 0, size = 0;
 #else
-	long		inode_buffer = 0, filesize_buffer = 0;
+	long		inode = 0, size = 0;
 #endif
 
-	buffer = (char *) malloc(readbuffersize + 1);
-	if (buffer == NULL)
-		errx(EXIT_FAILURE, "can't allocate memory");
-	/* Check if the file exists in specified directory */
-	/* Open as a binary in case the user reads in non-text files */
-	if ((input = fopen(logname, "rb")) == NULL) {
-		fprintf(stderr, "ERROR 390 - File %s cannot be read.\n", logname);
-		exit(EXIT_FAILURE);
-	}
-	if ((stat(logname, &file_stat)) != 0) {	/* load struct */
-		fprintf(stderr, "ERROR 396 - Cannot get %s file size.\n", logname);
-		exit(EXIT_FAILURE);
-	}
-	/* 32 bits, exit if file too big */
-	if ((sizeof(fpos_t) == 4) || sizeof(file_stat.st_size) == 4) {
-		if ((file_stat.st_size > 2147483646) || (file_stat.st_size < 0)) {
-			fprintf(stderr, "ERROR 403 - log file, %s, is too large at %lld bytes.\n", logname, (long long)file_stat.st_size);
-			exit(EXIT_FAILURE);
-		}
+	/*
+	 *  Check if the file exists in specified directory.  Open as
+	 *  a binary in case the user reads in non-text files.
+	 */
+	if ((input = fopen(logfn, "rb")) == NULL)
+		errx(EXIT_FAILURE, "File %s cannot be read.\n", logfn);
+	if ((stat(logfn, &logfile_stat)) != 0)
+		errx(EXIT_FAILURE, "Cannot get %s file size.\n", logfn);
+
+	/*
+	 * If we are on a 32-bit system,
+	 * exit if the file is too big.
+	 * XXX: Can this really happen? -- Mark
+	 */
+	if ((sizeof(fpos_t) == 4) || sizeof(logfile_stat.st_size) == 4) {
+		if((logfile_stat.st_size > 2147483646) || (logfile_stat.st_size < 0))
+			errx(EXIT_FAILURE, "log file, %s, is too large at %lld bytes.\n", logfn, (long long)logfile_stat.st_size);
 	}
 	/*
-	 * see if we can open an existing offset file and read in the inode
-	 * (unix),
+	 * See if we can open an existing offset file and read in the inode.
 	 */
-	/* offset and filesize */
-	if ((offset_output = fopen(offset_filename, "rb")) != NULL) {
-		fread(&inode_buffer, sizeof(inode_buffer), 1, offset_output);
+	if ((offset_output = fopen(offsetfn, "rb")) != NULL) {
+		fread(&inode, sizeof(inode), 1, offset_output);
 		fread(&offset_position, sizeof(offset_position), 1, offset_output);
-		fread(&filesize_buffer, sizeof(filesize_buffer), 1, offset_output);
-		/* We're done, clean up */
+		fread(&size, sizeof(size), 1, offset_output);
 		if (0 != fclose(offset_output))
 			err(EXIT_FAILURE, NULL);
-		/* can't read the file? then assume no offset file exists */
-	} else {
+	}
+	/*
+	 * If we can't read the offset file,
+	 * assume it doesn't exist.
+	 */
+	else {
 		fgetpos(input, &offset_position);
 		/* set the old inode number to the current file */
-		inode_buffer = file_stat.st_ino;
+		inode = logfile_stat.st_ino;
 	}
 
 
-	/* if the current file inode is the same, but the file size has */
-	/* grown SMALLER than the last time we checked, then assume */
-	/* log has been rolled via a copy and delete. */
-	/* look for the old file to output any extra, */
-	/* reset the offset to zero. */
-	if ((inode_buffer == file_stat.st_ino) && (filesize_buffer > file_stat.st_size)) {
+	if (NULL == (buf = strdup(logfn)))
+		errx(EXIT_FAILURE, "can't make a copy of log file name");
+	strcpy(logdir, dirname(buf));
+	free(buf);
+	buf = 0;
+
+	if (NULL == (buf = strdup(logfn)))
+		errx(EXIT_FAILURE, "can't make a copy of log file name");
+	strcpy(logbasefn, basename(buf));
+	free(buf);
+	buf = 0;
+
+	if (NULL == (buf = (char *) malloc(BUFSZ + 1)))
+		errx(EXIT_FAILURE, "can't allocate memory");
+
+	/*
+	 * If the current file inode is the same,
+	 * but the file size has
+	 * grown SMALLER than the last time we checked,
+	 * then assume the log file has been rolled
+	 * via a copy and delete.
+	 *
+	 * Look for the old file,
+	 * and if found
+	 * output any lines added to it
+	 * before it was rotated.
+	 */
+	if ((inode == logfile_stat.st_ino) && (size > logfile_stat.st_size)) {
 		/*
 		 * look in the log file directory for the most recent
-		 * old_log_filename_pat<extn>
 		 */
-		strcpy(old_logfile, "NoFileFound");
-		dp = opendir(oldlog_directory);
-		if (dp != NULL) {
-			file_mod_time = 0;
-			while ((ep = readdir(dp)))
-				if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
-					/*
-					 * put the directory and the filename
-					 * back together
-					 */
-					strcpy(old_logpathfile, oldlog_directory);
-					strcat(old_logpathfile, "/");
-					strcat(old_logpathfile, ep->d_name);
+		strcpy(old_logfn, "NoFileFound");
+		if (NULL == (dp = opendir(logdir)))
+			err(EXIT_FAILURE, NULL);
+		file_mod_time = 0;
+		while ((ep = readdir(dp))) {
+			if (strcmp(ep->d_name, ".") != 0 || strcmp(ep->d_name, "..") != 0)
+				continue;
+			strcpy(tmpfn, logdir);
+			strcat(tmpfn, "/");
+			strcat(tmpfn, ep->d_name);
 
-					if ((stat(old_logpathfile, &file_stat_old)) != 0) {	/* load struct */
-						fprintf(stderr, "ERROR 476 - Cannot get %s file size.\n", ep->d_name);
-						exit(EXIT_FAILURE);
-					}
-					if ((strncmp(ep->d_name, oldlog_filename_pat, strlen(oldlog_filename_pat)) == 0) && (strlen(ep->d_name) > strlen(oldlog_filename_pat)) && (file_stat_old.st_mtime > file_mod_time)) {
-						file_mod_time = file_stat_old.st_mtime;
-						strcpy(old_logfile, ep->d_name);
-					}
-				}
-		} else {
-			fprintf(stderr, "ERROR 488 - Couldn't open the directory: %s\n", oldlog_directory);
-			exit(EXIT_FAILURE);
+			if ((stat(tmpfn, &logfile_stat_old)) != 0)
+				errx(EXIT_FAILURE, NULL);
+			if ((strncmp(ep->d_name, logbasefn, strlen(logbasefn)) == 0)
+				&&  (strlen(ep->d_name) > strlen(logbasefn))
+				&& (logfile_stat_old.st_mtime > file_mod_time)) {
+				file_mod_time = logfile_stat_old.st_mtime;
+				strcpy(old_logfn, ep->d_name);
+			}
 		}
 		(void)closedir(dp);
 
 
 		/* if we found a file, then deal with it, or bypass */
-		if (strcmp(old_logfile, "NoFileFound") != 0) {
+		if (strcmp(old_logfn, "NoFileFound") != 0) {
 			/* put the directory and old filename back together */
-			strcpy(old_logpathfile, oldlog_directory);
-			strcat(old_logpathfile, "/");
-			strcat(old_logpathfile, old_logfile);
+			strcpy(tmpfn, logdir);
+			strcat(tmpfn, "/");
+			strcat(tmpfn, old_logfn);
 
 			/* open the found filename */
-			if ((old_input = fopen(old_logpathfile, "rb")) == NULL) {
-				fprintf(stderr, "ERROR 512 - File %s cannot be read.\n", old_logpathfile);
+			if ((old_input = fopen(tmpfn, "rb")) == NULL) {
+				fprintf(stderr, "ERROR 512 - File %s cannot be read.\n", tmpfn);
 				exit(EXIT_FAILURE);
 			}
 			/* print out the old log stuff */
@@ -416,11 +328,10 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 
 			/* Print the file */
 			do {
-				buffer[0] = 0;
-				charsread = fread(buffer, 1, readbuffersize, old_input);
-				if (suppressflag == 0)
-					fwrite(buffer, 1, charsread, stdout);
-			} while (charsread == readbuffersize);
+				buf[0] = 0;
+				charsread = fread(buf, 1, BUFSZ, old_input);
+				fwrite(buf, 1, charsread, stdout);
+			} while (charsread == BUFSZ);
 			if (0 != fclose(old_input))
 				err(EXIT_FAILURE, NULL);
 		}
@@ -437,14 +348,14 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 	 * find the orig file and output latest from it, then set offset to
 	 * zero
 	 */
-	if (inode_buffer != file_stat.st_ino) {
+	if (inode != logfile_stat.st_ino) {
 
 		/*
 		 * look in the current log file directory for the same inode
 		 * number
 		 */
-		strcpy(old_logfile, "NoFileFound");
-		dp = opendir(oldlog_directory);
+		strcpy(old_logfn, "NoFileFound");
+		dp = opendir(logdir);
 		if (dp != NULL) {
 			while ((ep = readdir(dp)))
 				if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
@@ -452,33 +363,33 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 					 * put the directory and old filename
 					 * back together
 					 */
-					strcpy(old_logpathfile, oldlog_directory);
-					strcat(old_logpathfile, "/");
-					strcat(old_logpathfile, ep->d_name);
-					if ((stat(old_logpathfile, &file_stat_old)) != 0) {	/* load struct */
-						fprintf(stderr, "ERROR 557 - Cannot get file %s details.\n", old_logpathfile);
+					strcpy(tmpfn, logdir);
+					strcat(tmpfn, "/");
+					strcat(tmpfn, ep->d_name);
+					if ((stat(tmpfn, &logfile_stat_old)) != 0) {	/* load struct */
+						fprintf(stderr, "ERROR 557 - Cannot get file %s details.\n", tmpfn);
 						exit(EXIT_FAILURE);
 					}
-					if (inode_buffer == file_stat_old.st_ino) {
-						strcpy(old_logfile, ep->d_name);
+					if (inode == logfile_stat_old.st_ino) {
+						strcpy(old_logfn, ep->d_name);
 					}
 				}
 			(void)closedir(dp);
 		} else {
-			fprintf(stderr, "ERROR 570 - Couldn't open the directory: %s", oldlog_directory);
+			fprintf(stderr, "ERROR 570 - Couldn't open the directory: %s", logdir);
 			exit(EXIT_FAILURE);
 		}
 
 		/* if we found a file, then deal with it, or bypass */
-		if (strcmp(old_logfile, "NoFileFound") != 0) {
+		if (strcmp(old_logfn, "NoFileFound") != 0) {
 			/* put the directory and old filename back together */
-			strcpy(old_logpathfile, oldlog_directory);
-			strcat(old_logpathfile, "/");
-			strcat(old_logpathfile, old_logfile);
+			strcpy(tmpfn, logdir);
+			strcat(tmpfn, "/");
+			strcat(tmpfn, old_logfn);
 
 			/* open the found filename */
-			if ((old_input = fopen(old_logpathfile, "rb")) == NULL) {
-				fprintf(stderr, "ERROR 589 - File %s cannot be read.\n", old_logpathfile);
+			if ((old_input = fopen(tmpfn, "rb")) == NULL) {
+				fprintf(stderr, "ERROR 589 - File %s cannot be read.\n", tmpfn);
 				exit(EXIT_FAILURE);
 			}
 			/* print out the old log stuff */
@@ -486,11 +397,10 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 
 			/* Print the file */
 			do {
-				buffer[0] = 0;
-				charsread = fread(buffer, 1, readbuffersize, old_input);
-				if (suppressflag == 0)
-					fwrite(buffer, 1, charsread, stdout);
-			} while (charsread == readbuffersize);
+				buf[0] = 0;
+				charsread = fread(buf, 1, BUFSZ, old_input);
+				fwrite(buf, 1, charsread, stdout);
+			} while (charsread == BUFSZ);
 			if (0 != fclose(old_input))
 				err(EXIT_FAILURE, NULL);
 		}
@@ -504,103 +414,34 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 	fsetpos(input, &offset_position);
 
 	/* Print the file */
-	if (suppressflag != 0)
-		fprintf(stderr, "Debug 709 - Output suppressed.\n");
 	do {
-		buffer[0] = 0;
-		charsread = fread(buffer, 1, readbuffersize, input);
-		if (suppressflag == 0)
-			fwrite(buffer, 1, charsread, stdout);
-	} while (charsread == readbuffersize);
+		buf[0] = 0;
+		charsread = fread(buf, 1, BUFSZ, input);
+		fwrite(buf, 1, charsread, stdout);
+	} while (charsread == BUFSZ);
 	fgetpos(input, &offset_position);
 	if (0 != fclose(input))
 		err(EXIT_FAILURE, NULL);
 
 	/* after we are done we need to write the new offset */
-	if ((offset_output = fopen(offset_filename, "w")) == NULL)
-		errx(EXIT_FAILURE, "File %s cannot be created. Check your permissions.\n", offset_filename);
+	if ((offset_output = fopen(offsetfn, "w")) == NULL)
+		errx(EXIT_FAILURE, "File %s cannot be created. Check your permissions.\n", offsetfn);
 	/* Don't let everyone read offset */
-	if ((chmod(offset_filename, 00660)) != 0)
-		errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offset_filename);
-	fwrite(&file_stat.st_ino, sizeof(file_stat.st_ino), 1, offset_output);
+	if ((chmod(offsetfn, 00660)) != 0)
+		errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offsetfn);
+	fwrite(&logfile_stat.st_ino, sizeof(logfile_stat.st_ino), 1, offset_output);
 	fwrite(&offset_position, sizeof(offset_position), 1, offset_output);
-	if (1 != fwrite(&file_stat.st_size, sizeof(file_stat.st_size), 1, offset_output))
+	if (1 != fwrite(&logfile_stat.st_size, sizeof(logfile_stat.st_size), 1, offset_output))
 		errx(EXIT_FAILURE, "write failed");
 	if (0 != fclose(offset_output))
 		err(EXIT_FAILURE, NULL);
-free(buffer);
+free(buf);
 	return (0);		/* everything A-OK */
 }
 
-void 
-usage()
-{
-	struct stat	test_stat;
 
-	printf("\nretail\n");
-	printf("\nUsage: retail [log_file] <offset_file>");
-	printf("\n   or: retail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
-	printf("\n     : <-f rolled_log_filename> <-r> <-s>");
-	printf("\n   or: retail -h");
-	printf("\n\n Required Parameters:");
-	printf("\n      [log_file]           :the log file to open and tail output.");
-	printf("\n or   [-l log_file]");
-	printf("\n\n Optional parameters:");
-	printf("\n   -o offset_file          : filename to use for the Offset file.");
-	printf("\n      Default: offset.[log_file], in the same directory as [log_file])");
-	printf("\n   -f rolled_log_filename  : base Filename for rolled logs");
-	printf("\n      Default: [log_file]");
-	printf("\n   -d rolled_log_directory : Directory to look for rolled logs.");
-	printf("\n      Default: the directory [log_file] is located");
-	printf("\n   -r read buffer size     : size of the log file reads and output writes.");
-	printf("\n      Default: 4096");
-	printf("\n   -s                      : suppress output, update offset file only");
-	printf("\n   -h                      : this help");
-	printf("\n\nretail will read in a file and output to stdout, unless the -s option");
-	printf("\n is specified. allowing a quick first time output of the <offset_file>.");
-	printf("\n\nAfter outputing the file, retail will create a file called");
-	printf("\n<offset_file> that will contain the decimal offset and inode of the file");
-	printf("\nin ASCII format.");
-	printf("\n\nNext time retail is run on [log_file] the <offset_file> is read and");
-	printf("\noutput begins at the saved offset. The -b option outputs debug messages");
-	printf("\nto stderr. The -r option specifies the log file read buffer, in bytes,");
-	printf("\nvariation may improve performance.");
-	printf("\nRotated log files will be automatically accounted for by looking at the");
-	printf("\nlog and,");
-	printf(" if the inode has changed, looking for the old log with the");
-	printf("\noriginal inode number in the <rolled_log_directory>. If the inode hasn't");
-	printf("\nhasn't changed, and log is now smaller, looking for the old log, the most");
-	printf("\nrecent file starting with same filename as [log_file].");
-	printf("\n\nVersion: %s", VERSION);
-	printf("\nComplied for *nix");
 
-	if ((sizeof(test_stat.st_size) < 8) || (sizeof(fpos_t) < 8))
-		printf("\nComplied with 32bit file pointers, warning: 2G file size limit.");
-	if ((sizeof(test_stat.st_size) >= 8) && (sizeof(fpos_t) >= 8))
-		printf("\nComplied with 64bit file pointers, large file aware.");
 
-	printf("\n\nWritten by Ross Moffatt <ross.stuff@telstra.com>");
-	printf("\nModified from the utility: retail");
-	printf("\nWritten by Craig H. Rowland <crowland@psionic.com>");
-	printf("\nBased upon original utility: retail (c)Trusted Information Systems");
-	printf("\nIncluding the utility: dirname");
-	printf("\nWritten by Piotr Domagalski <szalik@szalik.net>");
-	printf("\nThis program is covered by the GNU license.");
-	printf("\n\n This program covered by the GNU License. This program is free to");
-	printf("\n use as long as the above copyright notices are left intact. This");
-	printf("\n program has no warranty of any kind.\n");
-	printf("\n");
-}
-
-void 
-short_usage(void)
-{
-	printf("\n  Usage: retail [log_file] <offset_file>");
-	printf("\n     or: retail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
-	printf("\n       : <-f rolled_log_filename> <-r> <-s>");
-	printf("\n     or: retail -h\n");
-	printf("\n");
-}
 
 /* ------------------------------------------------------------------ */
 /* retail.c -- ASCII file tail program that remembers last position. */
@@ -641,16 +482,16 @@ short_usage(void)
 
 /*
  * dirname Copyright (c) 2003 Piotr Domagalski <szalik@szalik.net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License Version 2.1 as
  * published by the Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
  * License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 675 Mass Ave, Cambridge, MA 02139, USA.

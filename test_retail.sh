@@ -20,7 +20,7 @@
 #
 
 
-LOGTAIL=./retail
+RETAIL=./retail
 D=./testing
 
 rm -rf $D
@@ -37,12 +37,12 @@ line1
 line2
 line3
 EOF
-$LOGTAIL $D/1.log $D/1.offset > /dev/null
+$RETAIL -o $D/1.offset $D/1.log > /dev/null
 cat >> $D/1.log <<EOF
 line4
 line5
 EOF
-$LOGTAIL $D/1.log $D/1.offset > $D/1.act
+$RETAIL -o $D/1.offset $D/1.log > $D/1.act
 cat > $D/1.exp << EOF
 line4
 line5
@@ -55,7 +55,7 @@ line1
 line2
 line3
 EOF
-$LOGTAIL $D/2.log > /dev/null
+$RETAIL $D/2.log > /dev/null
 F=offset.2.log
 [ -f $D/$F ] && printf "."  || fail "default offset file \"$D/$F\" not created."
 
@@ -66,7 +66,7 @@ line1
 line2
 line3
 EOF
-$LOGTAIL $LF > /dev/null
+$RETAIL $LF > /dev/null
 cat >> $LF << EOF
 line4
 line5
@@ -76,7 +76,7 @@ cat > $LF << EOF
 line6
 line7
 EOF
-$LOGTAIL  $LF > $D/3.act
+$RETAIL  $LF > $D/3.act
 cat > $D/3.exp << EOF
 line4
 line5
