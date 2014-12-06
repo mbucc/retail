@@ -387,22 +387,21 @@ check_log(const char *logfn, const char *offsetfn)
 			exit(EXIT_FAILURE);
 		}
 
-		/* if we found a file, then deal with it, or bypass */
+		/*
+		 * If we found the old file,
+		 * print out any lines added
+		 * after the offset we have on file.
+		 */
 		if (strcmp(old_logfn, "NoFileFound") != 0) {
-			/* put the directory and old filename back together */
 			strcpy(tmpfn, logdir);
 			strcat(tmpfn, "/");
 			strcat(tmpfn, old_logfn);
 
-			/* open the found filename */
-			if ((old_input = fopen(tmpfn, "rb")) == NULL) {
-				fprintf(stderr, "ERROR 589 - File %s cannot be read.\n", tmpfn);
-				exit(EXIT_FAILURE);
-			}
-			/* print out the old log stuff */
+			if ((old_input = fopen(tmpfn, "rb")) == NULL)
+				err(EXIT_FAILURE, "%s", tmpfn, NULL);
+
 			fsetpos(old_input, &offset_position);
 
-			/* Print the file */
 			do {
 				buf[0] = 0;
 				charsread = fread(buf, 1, BUFSZ, old_input);
