@@ -87,5 +87,24 @@ diff $D/3.act $D/3.exp && printf "." || fail "didn't follow log rotation"
 
 
 
+# Test that passing directory for offset works.
+LF=$D/4.log
+cat > $LF << EOF
+line1
+line2
+line3
+EOF
+mkdir -p $D/offsets
+$RETAIL -o $D/offsets/ $LF > /dev/null
+cat >> $LF << EOF
+line4
+line5
+EOF
+$RETAIL -o $D/offsets/ $LF > $D/4.act
+cat > $D/4.exp << EOF
+line4
+line5
+EOF
+diff $D/4.act $D/4.exp && printf "." || fail "using offset directory"
 printf "\nSUCCESS!\n"
 #rm -rf $D
