@@ -68,7 +68,7 @@ main(int argc, char *argv[])
 			oldlog_pat    [MAX], tempstr[MAX];
 	char           *tempstr_ptr;
 	char		ch;
-	int		i         , checkflag, readbuffersize = 4096,	/* default read buffer
+	int		i, readbuffersize = 4096,	/* default read buffer
 									 * size */
 			testflag = 0,	/* default test off */
 			suppressflag = 0;	/* default output stuff */
@@ -84,18 +84,22 @@ main(int argc, char *argv[])
 		short_usage();
 		exit(EXIT_FAILURE);
 	}
-	if ((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "-l") == 0) || (strcmp(argv[1], "-o") == 0) || (strcmp(argv[1], "-d") == 0) || (strcmp(argv[1], "-f") == 0) || (strcmp(argv[1], "-r") == 0) || (strcmp(argv[1], "-s") == 0) || (strcmp(argv[1], "-t") == 0) || (strcmp(argv[1], "-b") == 0)) {
+	if ((strcmp(argv[1], "-h") == 0)
+	    ||(strcmp(argv[1], "-l") == 0)
+	    ||(strcmp(argv[1], "-o") == 0)
+	    ||(strcmp(argv[1], "-d") == 0)
+	    ||(strcmp(argv[1], "-f") == 0)
+	    ||(strcmp(argv[1], "-r") == 0)
+	    ||(strcmp(argv[1], "-s") == 0)
+	    ||(strcmp(argv[1], "-t") == 0)
+	{
 		for (i = 1; i < (argc); ++i) {
-			checkflag = 0;
 			strcpy(tempstr, "");
 			strcat(tempstr, argv[i]);
 			if ((tempstr[0] == '-') && (strlen(argv[i]) == 2)) {
 				ch = tempstr[1];
 
 				switch (ch) {
-				case 'b':
-					checkflag = 1;
-					break;
 				case 'd':
 					if (argc - 1 > i) {
 						if ((strlen(argv[i + 1])) > MY_MAX_PATH - 8) {
@@ -104,7 +108,6 @@ main(int argc, char *argv[])
 						} else {
 							strcpy(oldlog_dir, argv[i + 1]);
 							i++;
-							checkflag = 1;
 						}
 					}
 					break;
@@ -116,7 +119,6 @@ main(int argc, char *argv[])
 						} else {
 							strcpy(oldlog_pat, argv[i + 1]);
 							i++;
-							checkflag = 1;
 						}
 					}
 					break;
@@ -131,7 +133,6 @@ main(int argc, char *argv[])
 						} else {
 							strcpy(log_filename, argv[i + 1]);
 							i++;
-							checkflag = 1;
 						}
 					}
 					break;
@@ -143,7 +144,6 @@ main(int argc, char *argv[])
 						} else {
 							strcpy(offset_filename, argv[i + 1]);
 							i++;
-							checkflag = 1;
 						}
 					}
 					break;
@@ -155,24 +155,17 @@ main(int argc, char *argv[])
 							exit(EXIT_FAILURE);
 						}
 						i++;
-						checkflag = 1;
 					}
 					break;
 				case 's':
 					suppressflag = 1;
-					checkflag = 1;
 					break;
 				case 't':
 					testflag = 1;
-					checkflag = 1;
 					break;
 				}
 			}
-			/* if the checkflag is still 0 - exit with error */
-			if (checkflag == 0) {
-				fprintf(stderr, "ERROR 181 - Input parameter error, %s.\n", argv[i]);
-				exit(EXIT_FAILURE);
-			}
+
 		}
 	} else {
 		if (argc == 2) {
@@ -565,7 +558,7 @@ usage()
 	printf("\nretail\n");
 	printf("\nUsage: retail [log_file] <offset_file>");
 	printf("\n   or: retail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
-	printf("\n     : <-f rolled_log_filename> <-r> <-s> <-t> <-b>");
+	printf("\n     : <-f rolled_log_filename> <-r> <-s> <-t>");
 	printf("\n   or: retail -h");
 	printf("\n\n Required Parameters:");
 	printf("\n      [log_file]           :the log file to open and tail output.");
@@ -581,7 +574,6 @@ usage()
 	printf("\n      Default: 4096");
 	printf("\n   -s                      : suppress output, update offset file only");
 	printf("\n   -t                      : test, no update to offset file, output only");
-	printf("\n   -b                      : deBug output");
 	printf("\n   -h                      : this help");
 	printf("\n\nretail will read in a file and output to stdout, unless the -s option");
 	printf("\n is specified. allowing a quick first time output of the <offset_file>.");
