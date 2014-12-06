@@ -91,7 +91,7 @@ main(int argc, char *argv[])
 	    ||(strcmp(argv[1], "-f") == 0)
 	    ||(strcmp(argv[1], "-r") == 0)
 	    ||(strcmp(argv[1], "-s") == 0)
-	    ||(strcmp(argv[1], "-t") == 0)
+	    || (strcmp(argv[1], "-t") == 0))
 	{
 		for (i = 1; i < (argc); ++i) {
 			strcpy(tempstr, "");
