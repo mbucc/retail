@@ -90,7 +90,7 @@ main(int argc, char *argv[])
 	char		logfn     [MY_PATH_MAX] = {0};
 	char		offsetfn  [MY_PATH_MAX] = {0};
 	char           *p;
-	char		*buf;
+	char           *buf;
 	int		i;
 
 	switch (argc) {
