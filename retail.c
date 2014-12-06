@@ -54,7 +54,7 @@
 /* Prototypes for functions */
 static char    *dirname(char *path);
 static char    *nondirname(char *path);
-static int	check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int testflag, int readbuffersize, int suppressflag);
+static int	check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int readbuffersize, int suppressflag);
 static void	usage();
 static void	short_usage(void);
 static char    *right_string(char *my_path_file, int start_pos);
@@ -70,7 +70,6 @@ main(int argc, char *argv[])
 	char		ch;
 	int		i, readbuffersize = 4096,	/* default read buffer
 									 * size */
-			testflag = 0,	/* default test off */
 			suppressflag = 0;	/* default output stuff */
 
 	/* ok now, we gotta sorta outa the clps */
@@ -90,8 +89,7 @@ main(int argc, char *argv[])
 	    ||(strcmp(argv[1], "-d") == 0)
 	    ||(strcmp(argv[1], "-f") == 0)
 	    ||(strcmp(argv[1], "-r") == 0)
-	    ||(strcmp(argv[1], "-s") == 0)
-	    || (strcmp(argv[1], "-t") == 0))
+	    ||(strcmp(argv[1], "-s") == 0))
 	{
 		for (i = 1; i < (argc); ++i) {
 			strcpy(tempstr, "");
@@ -160,9 +158,6 @@ main(int argc, char *argv[])
 				case 's':
 					suppressflag = 1;
 					break;
-				case 't':
-					testflag = 1;
-					break;
 				}
 			}
 
@@ -222,7 +217,7 @@ main(int argc, char *argv[])
 	tempstr_ptr = right_string(oldlog_pat, strlen(oldlog_pat) - i);
 	strcpy(oldlog_pat, tempstr_ptr);
 
-	status = check_log(log_filename, offset_filename, oldlog_dir, oldlog_pat, testflag, readbuffersize, suppressflag);	/* check the logs */
+	status = check_log(log_filename, offset_filename, oldlog_dir, oldlog_pat, readbuffersize, suppressflag);	/* check the logs */
 
 	if (status == 0)
 		exit(EXIT_SUCCESS);
@@ -296,7 +291,7 @@ nondirname(char *path)
 
 /* a function to check a log file */
 int 
-check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int testflag, int readbuffersize, int suppressflag)
+check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int readbuffersize, int suppressflag)
 {
 	FILE           *input,	/* Value user supplies for input file */
 	               *old_input,	/* Found filename log rolled to */
@@ -522,27 +517,18 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 		err(EXIT_FAILURE, NULL);
 
 	/* after we are done we need to write the new offset */
-	/* if testflag set, skip writing out the offset file */
-	if (testflag == 0) {
-		if ((offset_output = fopen(offset_filename, "w")) == NULL) {
-			fprintf(stderr, "ERROR 720 - File %s cannot be created. Check your permissions.\n", offset_filename);
-			exit(EXIT_FAILURE);
-		} else {
-			/* Don't let anyone read offset */
-			if ((chmod(offset_filename, 00660)) != 0)
-				errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offset_filename);
-			} else {
-				/* write it */
-				fwrite(&file_stat.st_ino, sizeof(file_stat.st_ino), 1, offset_output);
-				fwrite(&offset_position, sizeof(offset_position), 1, offset_output);
-				if (1 != fwrite(&file_stat.st_size, sizeof(file_stat.st_size), 1, offset_output))
-					errx(EXIT_FAILURE, "write failed");
-				if (0 != fclose(offset_output))
-					err(EXIT_FAILURE, NULL);
-			}
-		}
-	}
-	free(buffer);
+	if ((offset_output = fopen(offset_filename, "w")) == NULL)
+		errx(EXIT_FAILURE, "File %s cannot be created. Check your permissions.\n", offset_filename);
+	/* Don't let everyone read offset */
+	if ((chmod(offset_filename, 00660)) != 0)
+		errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offset_filename);
+	fwrite(&file_stat.st_ino, sizeof(file_stat.st_ino), 1, offset_output);
+	fwrite(&offset_position, sizeof(offset_position), 1, offset_output);
+	if (1 != fwrite(&file_stat.st_size, sizeof(file_stat.st_size), 1, offset_output))
+		errx(EXIT_FAILURE, "write failed");
+	if (0 != fclose(offset_output))
+		err(EXIT_FAILURE, NULL);
+free(buffer);
 	return (0);		/* everything A-OK */
 }
 
@@ -554,7 +540,7 @@ usage()
 	printf("\nretail\n");
 	printf("\nUsage: retail [log_file] <offset_file>");
 	printf("\n   or: retail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
-	printf("\n     : <-f rolled_log_filename> <-r> <-s> <-t>");
+	printf("\n     : <-f rolled_log_filename> <-r> <-s>");
 	printf("\n   or: retail -h");
 	printf("\n\n Required Parameters:");
 	printf("\n      [log_file]           :the log file to open and tail output.");
@@ -569,15 +555,12 @@ usage()
 	printf("\n   -r read buffer size     : size of the log file reads and output writes.");
 	printf("\n      Default: 4096");
 	printf("\n   -s                      : suppress output, update offset file only");
-	printf("\n   -t                      : test, no update to offset file, output only");
 	printf("\n   -h                      : this help");
 	printf("\n\nretail will read in a file and output to stdout, unless the -s option");
 	printf("\n is specified. allowing a quick first time output of the <offset_file>.");
 	printf("\n\nAfter outputing the file, retail will create a file called");
 	printf("\n<offset_file> that will contain the decimal offset and inode of the file");
-	printf("\nin ASCII format unless the -t option is specified.  The -t option allows");
-	printf("\nfor test runs without changing the where retail reads the log from each");
-	printf("\ntime retail is called by not updating/creating the offset file.");
+	printf("\nin ASCII format.");
 	printf("\n\nNext time retail is run on [log_file] the <offset_file> is read and");
 	printf("\noutput begins at the saved offset. The -b option outputs debug messages");
 	printf("\nto stderr. The -r option specifies the log file read buffer, in bytes,");
@@ -614,7 +597,7 @@ short_usage(void)
 {
 	printf("\n  Usage: retail [log_file] <offset_file>");
 	printf("\n     or: retail [-l log_file] <-o offset_file> <-d rolled_log_directory>");
-	printf("\n       : <-f rolled_log_filename> <-r> <-s> <-t> <-b>");
+	printf("\n       : <-f rolled_log_filename> <-r> <-s>");
 	printf("\n     or: retail -h\n");
 	printf("\n");
 }
