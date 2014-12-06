@@ -96,7 +96,7 @@ line3
 EOF
 mkdir -p $D/offsets
 $RETAIL -o $D/offsets/ $LF > /dev/null
-[ -f $D/offsets/offset/4.log ] && printf "."  || fail "default offset file \"$D/offsets/offset/4.log\" not created."
+[ -f $D/offsets/offset.4.log ] && printf "."  || fail "default offset file \"$D/offsets/offset.4.log\" not created."
 cat >> $LF << EOF
 line4
 line5

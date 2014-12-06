@@ -93,6 +93,7 @@ main(int argc, char *argv[])
 	char		logfn     [MY_PATH_MAX] = {0};
 	char		offsetfn  [MY_PATH_MAX] = {0};
 	char           *p;
+	char		*buf;
 	int		i;
 
 	switch (argc) {
@@ -118,9 +119,13 @@ main(int argc, char *argv[])
 		strcpy(logfn, p);
 		p = argv[2];
 		if (p[strlen(p) - 1] == '/') {
-			if (strlen(p) > MY_PATH_MAX - strlen("/offset.") - 1)
-				errx(EXIT_FAILURE, "log file name is too long, max is %lu", MY_PATH_MAX - strlen("/offset.") - 1);
 			strcpy(offsetfn, logfn_to_offsetfn(logfn));
+			if (NULL == (buf = strdup(offsetfn)))
+				err(EXIT_FAILURE, "can't strdup '%s'", offsetfn);
+			if (strlen(p) > MY_PATH_MAX - strlen(basename(buf)) - 1)
+				errx(EXIT_FAILURE, "log file name is too long, max is %lu", MY_PATH_MAX - strlen(basename(buf)) - 1);
+			strcpy(offsetfn, p);
+			strcat(offsetfn, basename(buf));
 		}
 		else {
 			strcpy(offsetfn, p);
