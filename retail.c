@@ -54,8 +54,8 @@
 /* Prototypes for functions */
 static char    *dirname(char *path);
 static char    *nondirname(char *path);
-static int	check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int testflag, int readbuffersize, int suppressflag, int debugflag);
-static void	usage(int debugflag);
+static int	check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int testflag, int readbuffersize, int suppressflag);
+static void	usage();
 static void	short_usage(void);
 static char    *right_string(char *my_path_file, int start_pos);
 
@@ -71,8 +71,7 @@ main(int argc, char *argv[])
 	int		i         , checkflag, readbuffersize = 4096,	/* default read buffer
 									 * size */
 			testflag = 0,	/* default test off */
-			suppressflag = 0,	/* default output stuff */
-			debugflag = 0;	/* default debug off */
+			suppressflag = 0;	/* default output stuff */
 
 	/* ok now, we gotta sorta outa the clps */
 	strcpy(log_filename, "");
@@ -95,7 +94,6 @@ main(int argc, char *argv[])
 
 				switch (ch) {
 				case 'b':
-					debugflag = 1;
 					checkflag = 1;
 					break;
 				case 'd':
@@ -123,7 +121,7 @@ main(int argc, char *argv[])
 					}
 					break;
 				case 'h':
-					usage(debugflag);
+					usage();
 					exit(EXIT_FAILURE);
 				case 'l':
 					if (argc - 1 > i) {
@@ -202,8 +200,6 @@ main(int argc, char *argv[])
 
 	/* ok, lets see we got everything . . . */
 	if (strcmp(log_filename, "") == 0) {
-		if (debugflag != 0)
-			fprintf(stderr, "Debug 200 - No log_filename provided.\n");
 		short_usage();
 		exit(EXIT_FAILURE);
 	}
@@ -233,18 +229,7 @@ main(int argc, char *argv[])
 	tempstr_ptr = right_string(oldlog_pat, strlen(oldlog_pat) - i);
 	strcpy(oldlog_pat, tempstr_ptr);
 
-	if (debugflag != 0) {
-		fprintf(stderr, "Debug 259 - log_filename: %s\n", log_filename);
-		fprintf(stderr, "Debug 260 - offset_filename: %s\n", offset_filename);
-		fprintf(stderr, "Debug 261 - oldlog_dir: %s\n", oldlog_dir);
-		fprintf(stderr, "Debug 262 - oldlog_pat: %s\n", oldlog_pat);
-		fprintf(stderr, "Debug 263 - Read buffer size: %zd\n", readbuffersize);
-		if (suppressflag != 0)
-			fprintf(stderr, "Debug 264 - No log output\n");
-		if (testflag != 0)
-			fprintf(stderr, "Debug 265 - No offset_file update\n");
-	}
-	status = check_log(log_filename, offset_filename, oldlog_dir, oldlog_pat, testflag, readbuffersize, suppressflag, debugflag);	/* check the logs */
+	status = check_log(log_filename, offset_filename, oldlog_dir, oldlog_pat, testflag, readbuffersize, suppressflag);	/* check the logs */
 
 	if (status == 0)
 		exit(EXIT_SUCCESS);
@@ -318,7 +303,7 @@ nondirname(char *path)
 
 /* a function to check a log file */
 int 
-check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int testflag, int readbuffersize, int suppressflag, int debugflag)
+check_log(char *logname, char *offset_filename, char *oldlog_directory, char *oldlog_filename_pat, int testflag, int readbuffersize, int suppressflag)
 {
 	FILE           *input,	/* Value user supplies for input file */
 	               *old_input,	/* Found filename log rolled to */
@@ -362,11 +347,6 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 		fprintf(stderr, "ERROR 396 - Cannot get %s file size.\n", logname);
 		exit(EXIT_FAILURE);
 	}
-	if (debugflag != 0) {
-		fprintf(stderr, "Debug 390 - file_stat.st_ino size: %zd\n", sizeof(file_stat.st_ino));
-		fprintf(stderr, "Debug 391 - file_stat.st_size size: %zd\n", sizeof(file_stat.st_size));
-		fprintf(stderr, "Debug 392 - fpos_t size: %zd\n", sizeof(fpos_t));
-	}
 	/* 32 bits, exit if file too big */
 	if ((sizeof(fpos_t) == 4) || sizeof(file_stat.st_size) == 4) {
 		if ((file_stat.st_size > 2147483646) || (file_stat.st_size < 0)) {
@@ -391,26 +371,15 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 		fgetpos(input, &offset_position);
 		/* set the old inode number to the current file */
 		inode_buffer = file_stat.st_ino;
-		if (debugflag != 0)
-			fprintf(stderr, "ERROR 425 - Assumed no offset file exists!\n");
 	}
 
-	if (debugflag != 0) {
-		if (filesize_buffer > file_stat.st_size)
-			fprintf(stderr, "Debug 621 - smaller\n");
-		if (filesize_buffer < file_stat.st_size)
-			fprintf(stderr, "Debug 622 - larger\n");
-		if (filesize_buffer == file_stat.st_size)
-			fprintf(stderr, "Debug 623 - same\n");
-	}
+
 	/* if the current file inode is the same, but the file size has */
 	/* grown SMALLER than the last time we checked, then assume */
 	/* log has been rolled via a copy and delete. */
 	/* look for the old file to output any extra, */
 	/* reset the offset to zero. */
 	if ((inode_buffer == file_stat.st_ino) && (filesize_buffer > file_stat.st_size)) {
-		if (debugflag != 0)
-			fprintf(stderr, "Debug 457 - Log file has copied/smaller!, Log dir is: %s\n", oldlog_directory);
 		/*
 		 * look in the log file directory for the most recent
 		 * old_log_filename_pat<extn>
@@ -444,8 +413,6 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 		}
 		(void)closedir(dp);
 
-		if (debugflag != 0)
-			fprintf(stderr, "Debug 494 - Old log file found: %s\n", old_logfile);
 
 		/* if we found a file, then deal with it, or bypass */
 		if (strcmp(old_logfile, "NoFileFound") != 0) {
@@ -453,8 +420,6 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 			strcpy(old_logpathfile, oldlog_directory);
 			strcat(old_logpathfile, "/");
 			strcat(old_logpathfile, old_logfile);
-			if (debugflag != 0)
-				fprintf(stderr, "Debug 506 - Copied file is here: %s\n", old_logpathfile);
 
 			/* open the found filename */
 			if ((old_input = fopen(old_logpathfile, "rb")) == NULL) {
@@ -488,8 +453,6 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 	 * zero
 	 */
 	if (inode_buffer != file_stat.st_ino) {
-		if (debugflag != 0)
-			fprintf(stderr, "Debug 540 - Log file has moved!, Log dir is: %s\n", oldlog_directory);
 
 		/*
 		 * look in the current log file directory for the same inode
@@ -512,8 +475,6 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 						exit(EXIT_FAILURE);
 					}
 					if (inode_buffer == file_stat_old.st_ino) {
-						if (debugflag != 0)
-							fprintf(stderr, "Debug 563 - Log file found!, Log is: %s\n", ep->d_name);
 						strcpy(old_logfile, ep->d_name);
 					}
 				}
@@ -529,8 +490,6 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 			strcpy(old_logpathfile, oldlog_directory);
 			strcat(old_logpathfile, "/");
 			strcat(old_logpathfile, old_logfile);
-			if (debugflag != 0)
-				fprintf(stderr, "Debug 583 - Moved file is here: %s\n", old_logpathfile);
 
 			/* open the found filename */
 			if ((old_input = fopen(old_logpathfile, "rb")) == NULL) {
@@ -557,12 +516,10 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 		fgetpos(input, &offset_position);
 	}
 	/* print out the current log stuff */
-	if (debugflag != 0)
-		fprintf(stderr, "Debug 695 - print out the current log stuff: %s\n", logname);
 	fsetpos(input, &offset_position);
 
 	/* Print the file */
-	if ((suppressflag != 0) && (debugflag != 0))
+	if (suppressflag != 0)
 		fprintf(stderr, "Debug 709 - Output suppressed.\n");
 	do {
 		buffer[0] = 0;
@@ -601,7 +558,7 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 }
 
 void 
-usage(int debugflag)
+usage()
 {
 	struct stat	test_stat;
 
@@ -650,12 +607,6 @@ usage(int debugflag)
 		printf("\nComplied with 32bit file pointers, warning: 2G file size limit.");
 	if ((sizeof(test_stat.st_size) >= 8) && (sizeof(fpos_t) >= 8))
 		printf("\nComplied with 64bit file pointers, large file aware.");
-	if (debugflag != 0)
-		printf("\nSize of test_stat.st_size = %zd bytes", sizeof(test_stat.st_size));
-	if (debugflag != 0)
-		printf("\nSize of fpos_t = %zd bytes", sizeof(fpos_t));
-	if (debugflag != 0)
-		printf("\nCompiled with DEBUG on");
 
 	printf("\n\nWritten by Ross Moffatt <ross.stuff@telstra.com>");
 	printf("\nModified from the utility: retail");
