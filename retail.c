@@ -324,12 +324,9 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 	long		inode_buffer = 0, filesize_buffer = 0;
 #endif
 
-	/* allocate buffer memory: */
-	buffer = (char *)malloc(readbuffersize + 1);
-	if (buffer == NULL) {
-		fputs("Memory error", stderr);
-		exit(2);
-	}
+	buffer = (char *) malloc(readbuffersize + 1);
+	if (buffer == NULL)
+		errx(EXIT_FAILURE, "can't allocate memory");
 	/* Check if the file exists in specified directory */
 	/* Open as a binary in case the user reads in non-text files */
 	if ((input = fopen(logname, "rb")) == NULL) {
@@ -532,9 +529,8 @@ check_log(char *logname, char *offset_filename, char *oldlog_directory, char *ol
 			exit(EXIT_FAILURE);
 		} else {
 			/* Don't let anyone read offset */
-			if ((chmod(offset_filename, 00660)) != 0) {
-				fprintf(stderr, "ERROR 725 - Cannot set permissions on file %s\n", offset_filename);
-				exit(EXIT_FAILURE);
+			if ((chmod(offset_filename, 00660)) != 0)
+				errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offset_filename);
 			} else {
 				/* write it */
 				fwrite(&file_stat.st_ino, sizeof(file_stat.st_ino), 1, offset_output);
