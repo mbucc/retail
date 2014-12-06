@@ -60,16 +60,17 @@
 static char    *nondirname(char *path);
 static int	check_log(const char *logfn, const char *offsetfn);
 static char    *right_string(char *my_path_file, int start_pos);
+
 /*
  * Generate the offset filename for the given log file.
  *
  * Assumes the caller has already made sure log filename is not too long.
  */
-char *
+char           *
 logfn_to_offsetfn(const char *logfn)
 {
-	static char	 rval[MY_PATH_MAX] = {0};
-	char		*buf = 0;
+	static char	rval[MY_PATH_MAX] = {0};
+	char           *buf = 0;
 
 	/*
 	 * On Solaris, HP and AIX dirname() and basename() modify their argument.
@@ -89,9 +90,9 @@ logfn_to_offsetfn(const char *logfn)
 int
 main(int argc, char *argv[])
 {
-	char		logfn[MY_PATH_MAX] = {0};
-	char		offsetfn[MY_PATH_MAX] = {0};
-	char		*p;
+	char		logfn     [MY_PATH_MAX] = {0};
+	char		offsetfn  [MY_PATH_MAX] = {0};
+	char           *p;
 	int		i;
 
 	switch (argc) {
@@ -104,9 +105,9 @@ main(int argc, char *argv[])
 		strcpy(logfn, p);
 		strcpy(offsetfn, logfn_to_offsetfn(logfn));
 		break;
-	/*
-	 * retail -o $HOME/var/db/retail/ /var/log/syslog
-	 */
+		/*
+		 * retail -o $HOME/var/db/retail/ /var/log/syslog
+		 */
 	case 4:
 		p = argv[1];
 		if (*p != '-' || (*p && *(p + 1) != 'o'))
@@ -123,7 +124,7 @@ main(int argc, char *argv[])
 		}
 		else {
 			strcpy(offsetfn, p);
-			if (strlen(p) > MY_PATH_MAX -1)
+			if (strlen(p) > MY_PATH_MAX - 1)
 				errx(EXIT_FAILURE, "offset filename too long, max is %d", MY_PATH_MAX);
 		}
 		break;
@@ -194,12 +195,13 @@ check_log(const char *logfn, const char *offsetfn)
 	               *old_input,	/* Found filename log rolled to */
 	               *offset_output;	/* name of the offset output file */
 
-	struct stat	logfile_stat, logfile_stat_old;
+	struct stat	logfile_stat,
+			logfile_stat_old;
 
-	char		old_logfn[MY_PATH_MAX];
-	char		tmpfn[MY_PATH_MAX];
-	char		logdir[MY_PATH_MAX] = {0};
-	char		logbasefn[MY_PATH_MAX] = {0};
+	char		old_logfn [MY_PATH_MAX];
+	char		tmpfn     [MY_PATH_MAX];
+	char		logdir    [MY_PATH_MAX] = {0};
+	char		logbasefn [MY_PATH_MAX] = {0};
 
 	char           *buf = 0;
 
@@ -213,9 +215,13 @@ check_log(const char *logfn, const char *offsetfn)
 	int		charsread = 0;
 
 #if _FILE_OFFSET_BITS == 64
-	long long	inode = 0, size = 0;
+	long long	inode = 0,
+			size = 0;
+
 #else
-	long		inode = 0, size = 0;
+	long		inode = 0,
+			size = 0;
+
 #endif
 
 	/*
@@ -233,7 +239,7 @@ check_log(const char *logfn, const char *offsetfn)
 	 * XXX: Can this really happen? -- Mark
 	 */
 	if ((sizeof(fpos_t) == 4) || sizeof(logfile_stat.st_size) == 4) {
-		if((logfile_stat.st_size > 2147483646) || (logfile_stat.st_size < 0))
+		if ((logfile_stat.st_size > 2147483646) || (logfile_stat.st_size < 0))
 			errx(EXIT_FAILURE, "log file, %s, is too large at %lld bytes.\n", logfn, (long long)logfile_stat.st_size);
 	}
 	/*
@@ -269,7 +275,7 @@ check_log(const char *logfn, const char *offsetfn)
 	free(buf);
 	buf = 0;
 
-	if (NULL == (buf = (char *) malloc(BUFSZ + 1)))
+	if (NULL == (buf = (char *)malloc(BUFSZ + 1)))
 		errx(EXIT_FAILURE, "can't allocate memory");
 
 	/*
@@ -302,8 +308,8 @@ check_log(const char *logfn, const char *offsetfn)
 			if ((stat(tmpfn, &logfile_stat_old)) != 0)
 				errx(EXIT_FAILURE, NULL);
 			if ((strncmp(ep->d_name, logbasefn, strlen(logbasefn)) == 0)
-				&&  (strlen(ep->d_name) > strlen(logbasefn))
-				&& (logfile_stat_old.st_mtime > file_mod_time)) {
+			    && (strlen(ep->d_name) > strlen(logbasefn))
+			    && (logfile_stat_old.st_mtime > file_mod_time)) {
 				file_mod_time = logfile_stat_old.st_mtime;
 				strcpy(old_logfn, ep->d_name);
 			}
@@ -375,7 +381,8 @@ check_log(const char *logfn, const char *offsetfn)
 					}
 				}
 			(void)closedir(dp);
-		} else {
+		}
+		else {
 			fprintf(stderr, "ERROR 570 - Couldn't open the directory: %s", logdir);
 			exit(EXIT_FAILURE);
 		}
@@ -435,7 +442,7 @@ check_log(const char *logfn, const char *offsetfn)
 		errx(EXIT_FAILURE, "write failed");
 	if (0 != fclose(offset_output))
 		err(EXIT_FAILURE, NULL);
-free(buf);
+	free(buf);
 	return (0);		/* everything A-OK */
 }
 
