@@ -1,8 +1,2 @@
-hosts
-id_dsa_tinyvz_production
-touch.*
-stopfiles
-stoplist
 retail
 testing
-checker*.tar.bz2
