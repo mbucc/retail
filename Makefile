@@ -1,5 +1,8 @@
 retail: retail.c
-	clang -Weverything -o $@ $?
+	clang -o $@ $?
+
+lint: retail.c
+	clang -Weverything -o retail $?
 
 test: retail test_retail.sh
 	./test_retail.sh
