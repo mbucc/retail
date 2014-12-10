@@ -15,7 +15,8 @@
 
 /*
  * PATH_MAX seems broken, here's a choice quote from
-
+ *
+ * 	http://insanecoding.blogspot.com/2007/11/pathmax-simply-isnt.html
  *
  *	Since a path can be longer than PATH_MAX, the define is useless,
  *	writing code based off of it is wrong, and the functions that require
@@ -34,9 +35,7 @@ build_offsetfn(char *logfn, char *offsetfn)
 	size_t		sz = 0;
 
 	/*
-	 * If offset filename is given
-	 * and it is not a directory,
-	 * just use that.
+	 * The offset filename is given.
 	 */
 	if (offsetfn && strlen(offsetfn) && offsetfn[strlen(offsetfn) - 1] != '/') {
 		if (strlen(offsetfn) > MY_PATH_MAX - 1)
@@ -45,10 +44,8 @@ build_offsetfn(char *logfn, char *offsetfn)
 	}
 
 	/*
-	 * If offset filename is is a directory,
-	 * put offset file there
-	 * with the same filename as the log
-	 * with the prefix "offset." added
+	 * The offset filename is given
+	 * and is a directory.
 	 */
 	else if (offsetfn && strlen(offsetfn) && offsetfn[strlen(offsetfn) - 1] == '/') {
 		if (!logfn || strlen(logfn) == 0)
@@ -62,8 +59,7 @@ build_offsetfn(char *logfn, char *offsetfn)
 	}
 
 	/*
-	 * If no offset filename specified,
-	 * we prefix log filename with "prefix."
+	 * No offset filename specified.
 	 */
 	else if (!offsetfn || !strlen(offsetfn)) {
 		sz = strlen(dirname(logfn)) + strlen("/offset.") + strlen(basename(logfn));
@@ -78,6 +74,7 @@ build_offsetfn(char *logfn, char *offsetfn)
 		errx(EXIT_FAILURE, "logic error in build_offsetfn()");
 	return rval;
 }
+
 struct conditional_data {
 	ino_t		loginode;
 	ino_t		otherinode;
