@@ -1,33 +1,5 @@
 /**
  *  retail.c -- ASCII file tail program that remembers last position.
- *
-
- *  Ross Moffatt <ross.stuff@telstra.com>
- *  Mark Bucciarelli <mkbucc@gmail.com>
- *
- retail
- * Written by Craig H. Rowland <crowland@psionic.com>
- retail (c)Trusted Information Systems
- *
- * This program covered by the GNU License. This program is free to use as long as
- * the above copyright notices are left intact.
- * This program has no warranty of any kind.
- *
-
- gcc -o retail retail.c
- * add -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 for large file aware build
- *
- Log roll aware
- Fixes and Windows compatibility
- Minor help text and layout update
- Path related fixes
- Changed -? to -h, DOS_ to D_OS_; added -t, 32bit file too big chk
- Fixed 32bit file too big chk bug
- fseek(o),ftell(o),fgets to fgetpos,fsetpos,fgetc
- *                fgets,fprintf to fread,fwrite added -b -r -s options
- *                fixed win extra line feed out bug
- usage function, 32/64 bit aware, added debug, changed the logic.
- *  VERSION 4.0.0  Remove _OS_DOS support.
  */
 
 #include <err.h>
@@ -54,10 +26,6 @@
 #define MY_PATH_MAX 1024
 #define BUFSZ 4096
 #define USAGE "retail [-o <offset filename>] <log filename>"
-
-/* Prototypes for functions */
-static int	check_log(char *logfn, const char *offsetfn);
-
 
 static char    *
 build_offsetfn(char *logfn, char *offsetfn)
@@ -210,7 +178,7 @@ dump_changes(const char *fn, const fpos_t pos)
  * Output any new lines added to log since last run,
  * and update offset.
  */
-int
+static int
 check_log(char *logfn, const char *offsetfn)
 {
 	FILE           *logfp,
