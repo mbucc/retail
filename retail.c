@@ -59,7 +59,7 @@
 static int	check_log(char *logfn, const char *offsetfn);
 
 
-static char           *
+static char    *
 build_offsetfn(char *logfn, char *offsetfn)
 {
 	static char	rval[MY_PATH_MAX] = {0};
@@ -111,15 +111,15 @@ build_offsetfn(char *logfn, char *offsetfn)
 	return rval;
 }
 struct conditional_data {
-	ino_t	 loginode;
-	ino_t	 otherinode;
-	long long	 mostrecent_mtime;
-	long long	 other_mtime;
-	const char	*logfn;
-	const char	*otherfn;
+	ino_t		loginode;
+	ino_t		otherinode;
+	long long	mostrecent_mtime;
+	long long	other_mtime;
+	const char     *logfn;
+	const char     *otherfn;
 };
 
-typedef int (*conditional)(const struct conditional_data *);
+typedef int     (*conditional) (const struct conditional_data *);
 
 static int
 sameinode(const struct conditional_data *p)
@@ -131,16 +131,16 @@ static int
 mostrecent(const struct conditional_data *p)
 {
 	return strncmp(p->otherfn, p->logfn, strlen(p->logfn)) == 0
-		    && strlen(p->otherfn) > strlen(p->logfn)
-		    && p->other_mtime > p->mostrecent_mtime;
+	&& strlen(p->otherfn) > strlen(p->logfn)
+	&& p->other_mtime > p->mostrecent_mtime;
 }
 
 static char    *
 find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 {
 	static char	rval[MY_PATH_MAX] = {0};
-	char		fn[MY_PATH_MAX] = {0};
-	struct conditional_data	state;
+	char		fn        [MY_PATH_MAX] = {0};
+	struct conditional_data state;
 	struct dirent  *ep = 0;
 	struct stat	fstat;
 	DIR            *dp;
@@ -172,7 +172,7 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 		state.otherfn = ep->d_name;
 		state.other_mtime = fstat.st_mtime;
 		state.otherinode = fstat.st_ino;
-		if ((*update_lastlog)(&state)) {
+		if ((*update_lastlog) (&state)) {
 			state.mostrecent_mtime = fstat.st_mtime;
 			strcpy(rval, fn);
 		}
@@ -185,7 +185,7 @@ int
 main(int argc, char *argv[])
 {
 	char		logfn     [MY_PATH_MAX] = {0};
-	char		*offsetfn = 0;
+	char           *offsetfn = 0;
 	char           *p;
 
 	switch (argc) {
@@ -214,9 +214,9 @@ main(int argc, char *argv[])
 static void
 dump_changes(const char *fn, const fpos_t pos)
 {
-	char		 buf[BUFSZ] = {0};
-	FILE		*fp = 0;
-	size_t		 charsread = 0;
+	char		buf       [BUFSZ] = {0};
+	FILE           *fp = 0;
+	size_t		charsread = 0;
 
 	if (NULL == (fp = fopen(fn, "rb")))
 		err(EXIT_FAILURE, NULL);
@@ -246,11 +246,11 @@ check_log(char *logfn, const char *offsetfn)
 	               *offsetfp;
 	struct stat	logfstat;
 	conditional	lastlog_finder;
-	char		*lastlog;
+	char           *lastlog;
 	char           *buf = 0;
 	fpos_t		offset_position;
-	ino_t	inode = 0;
-	off_t	size = 0;
+	ino_t		inode = 0;
+	off_t		size = 0;
 
 	/*
 	 *  Check if the file exists in specified directory.  Open as
