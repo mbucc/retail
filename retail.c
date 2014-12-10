@@ -181,35 +181,6 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 	return rval;
 }
 
-int
-main(int argc, char *argv[])
-{
-	char		logfn     [MY_PATH_MAX] = {0};
-	char           *offsetfn = 0;
-	char           *p;
-
-	switch (argc) {
-	case 2:
-		p = argv[1];
-		if (*p == '-')
-			errx(EXIT_FAILURE, USAGE);
-		offsetfn = build_offsetfn(argv[1], NULL);
-		break;
-	case 4:
-		p = argv[1];
-		if (*p != '-' || (*p && *(p + 1) != 'o'))
-			errx(EXIT_FAILURE, USAGE);
-		offsetfn = build_offsetfn(argv[3], argv[2]);
-		break;
-	default:
-		errx(EXIT_FAILURE, USAGE);
-	}
-
-	check_log(logfn, offsetfn);
-
-	return 0;
-}
-
 
 static void
 dump_changes(const char *fn, const fpos_t pos)
@@ -331,4 +302,33 @@ check_log(char *logfn, const char *offsetfn)
 		err(EXIT_FAILURE, NULL);
 	free(buf);
 	return (0);		/* everything A-OK */
+}
+
+int
+main(int argc, char *argv[])
+{
+	char		logfn     [MY_PATH_MAX] = {0};
+	char           *offsetfn = 0;
+	char           *p;
+
+	switch (argc) {
+	case 2:
+		p = argv[1];
+		if (*p == '-')
+			errx(EXIT_FAILURE, USAGE);
+		offsetfn = build_offsetfn(argv[1], NULL);
+		break;
+	case 4:
+		p = argv[1];
+		if (*p != '-' || (*p && *(p + 1) != 'o'))
+			errx(EXIT_FAILURE, USAGE);
+		offsetfn = build_offsetfn(argv[3], argv[2]);
+		break;
+	default:
+		errx(EXIT_FAILURE, USAGE);
+	}
+
+	check_log(logfn, offsetfn);
+
+	return 0;
 }
