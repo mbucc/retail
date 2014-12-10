@@ -52,7 +52,7 @@ build_offsetfn(char *logfn, char *offsetfn)
 			errx(EXIT_FAILURE, "log filename is empty");
 		sz = strlen(offsetfn) + strlen("offset.") + strlen(basename(logfn));
 		if (sz > MY_PATH_MAX - 1)
-			err(EXIT_FAILURE, "offset filename is too long");
+			errx(EXIT_FAILURE, "offset filename is too long");
 		strcpy(rval, offsetfn);
 		strcat(rval, "offset.");
 		strcat(rval, basename(logfn));
@@ -116,7 +116,7 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 	dir = dirname(logfn);
 	base = basename(logfn);
 	if (NULL == (dp = opendir(dir)))
-		err(EXIT_FAILURE, NULL);
+		err(EXIT_FAILURE, "'%s'", dir, NULL);
 
 	memset(&state, 0, sizeof(state));
 	state.logfn = base;
@@ -155,7 +155,7 @@ dump_changes(const char *fn, const fpos_t pos)
 	size_t		charsread = 0;
 
 	if (NULL == (fp = fopen(fn, "rb")))
-		err(EXIT_FAILURE, NULL);
+		err(EXIT_FAILURE, "'%s'", fn, NULL);
 
 	fsetpos(fp, &pos);
 
@@ -193,9 +193,9 @@ check_log(char *logfn, const char *offsetfn)
 	 *  a binary in case the user reads in non-text files.
 	 */
 	if ((logfp = fopen(logfn, "rb")) == NULL)
-		err(EXIT_FAILURE, NULL);
+		err(EXIT_FAILURE, "'%s'", logfn, NULL);
 	if ((stat(logfn, &logfstat)) != 0)
-		err(EXIT_FAILURE, NULL);
+		err(EXIT_FAILURE, "'%s'", logfn, NULL);
 
 	/*
 	 * If we are on a 32-bit system,
@@ -255,7 +255,7 @@ check_log(char *logfn, const char *offsetfn)
 
 	/* after we are done we need to write the new offset */
 	if ((offsetfp = fopen(offsetfn, "w")) == NULL)
-		err(EXIT_FAILURE, NULL);
+		err(EXIT_FAILURE, "'%s'", offsetfn, NULL);
 	/* Don't let everyone read offset */
 	if ((chmod(offsetfn, 00660)) != 0)
 		errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offsetfn);
