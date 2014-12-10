@@ -111,8 +111,8 @@ build_offsetfn(char *logfn, char *offsetfn)
 	return rval;
 }
 struct conditional_data {
-	long long	 loginode;
-	long long	 otherinode;
+	ino_t	 loginode;
+	ino_t	 otherinode;
 	long long	 mostrecent_mtime;
 	long long	 other_mtime;
 	const char	*logfn;
@@ -121,13 +121,13 @@ struct conditional_data {
 
 typedef int (*conditional)(const struct conditional_data *);
 
-int
+static int
 sameinode(const struct conditional_data *p)
 {
 	return p->loginode == p->otherinode;
 }
 
-int
+static int
 mostrecent(const struct conditional_data *p)
 {
 	return strncmp(p->otherfn, p->logfn, strlen(p->logfn)) == 0
@@ -136,24 +136,24 @@ mostrecent(const struct conditional_data *p)
 }
 
 static char    *
-find_lastlog(char *logfn, long long logino, conditional update_lastlog)
+find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 {
 	static char	rval[MY_PATH_MAX] = {0};
 	char		fn[MY_PATH_MAX] = {0};
-	struct conditional_data	state = {0};
+	struct conditional_data	state;
 	struct dirent  *ep = 0;
 	struct stat	fstat;
 	DIR            *dp;
 	char           *dir = 0;
 	char           *base = 0;
 	size_t		sz = 0;
-	long long	mostrecent = 0;
 
 	dir = dirname(logfn);
 	base = basename(logfn);
 	if (NULL == (dp = opendir(dir)))
 		err(EXIT_FAILURE, NULL);
 
+	memset(&state, 0, sizeof(state));
 	state.logfn = base;
 	state.mostrecent_mtime = 0;
 	state.loginode = logino;
@@ -187,8 +187,6 @@ main(int argc, char *argv[])
 	char		logfn     [MY_PATH_MAX] = {0};
 	char		*offsetfn = 0;
 	char           *p;
-	char           *buf;
-	int		i;
 
 	switch (argc) {
 	case 2:
@@ -213,7 +211,7 @@ main(int argc, char *argv[])
 }
 
 
-void
+static void
 dump_changes(const char *fn, const fpos_t pos)
 {
 	char		 buf[BUFSZ] = {0};
@@ -244,39 +242,15 @@ dump_changes(const char *fn, const fpos_t pos)
 int
 check_log(char *logfn, const char *offsetfn)
 {
-	FILE           *logfp,	/* Value user supplies for input file */
-	               *lastlogfp,	/* Found filename log rolled to */
-	               *offsetfp;	/* name of the offset output file */
-
-	struct stat	logfstat,
-			logfstat_old;
+	FILE           *logfp,
+	               *offsetfp;
+	struct stat	logfstat;
 	conditional	lastlog_finder;
-
 	char		*lastlog;
-	char		tmpfn     [MY_PATH_MAX];
-	char		logdir    [MY_PATH_MAX] = {0};
-	char		logbasefn [MY_PATH_MAX] = {0};
-
 	char           *buf = 0;
-
-	DIR            *dp;
-	struct dirent  *ep;
-
-	fpos_t		offset_position;	/* position in the file to
-						 * offset */
-
-	long		file_mod_time;
-	int		charsread = 0;
-
-#if _FILE_OFFSET_BITS == 64
-	long long	inode = 0,
-			size = 0;
-
-#else
-	long		inode = 0,
-			size = 0;
-
-#endif
+	fpos_t		offset_position;
+	ino_t	inode = 0;
+	off_t	size = 0;
 
 	/*
 	 *  Check if the file exists in specified directory.  Open as
