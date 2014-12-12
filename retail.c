@@ -116,7 +116,7 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 	dir = dirname(logfn);
 	base = basename(logfn);
 	if (NULL == (dp = opendir(dir)))
-		err(EXIT_FAILURE, "'%s'", dir, NULL);
+		err(EXIT_FAILURE, "can't open directory '%s'", dir, NULL);
 
 	memset(&state, 0, sizeof(state));
 	state.logfn = base;
@@ -133,7 +133,7 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 		strcat(fn, ep->d_name);
 
 		if ((stat(fn, &fstat)) != 0)
-			err(EXIT_FAILURE, NULL);
+			err(EXIT_FAILURE, "can't stat '%s'", fn);
 		state.otherfn = ep->d_name;
 		state.other_mtime = fstat.st_mtime;
 		state.otherinode = fstat.st_ino;
@@ -155,7 +155,7 @@ dump_changes(const char *fn, const fpos_t pos)
 	size_t		charsread = 0;
 
 	if (NULL == (fp = fopen(fn, "rb")))
-		err(EXIT_FAILURE, "'%s'", fn, NULL);
+		err(EXIT_FAILURE, "can't open '%s'", fn);
 
 	fsetpos(fp, &pos);
 
@@ -166,7 +166,7 @@ dump_changes(const char *fn, const fpos_t pos)
 	} while (charsread == BUFSZ);
 
 	if (0 != fclose(fp))
-		err(EXIT_FAILURE, NULL);
+		err(EXIT_FAILURE, "failed to close '%s'", fn);
 }
 
 
@@ -193,9 +193,9 @@ check_log(char *logfn, const char *offsetfn)
 	 *  a binary in case the user reads in non-text files.
 	 */
 	if ((logfp = fopen(logfn, "rb")) == NULL)
-		err(EXIT_FAILURE, "'%s'", logfn, NULL);
+		err(EXIT_FAILURE, "can't open '%s'", logfn);
 	if ((stat(logfn, &logfstat)) != 0)
-		err(EXIT_FAILURE, "'%s'", logfn, NULL);
+		err(EXIT_FAILURE, "can't stat '%s'", logfn);
 
 	/*
 	 * If we are on a 32-bit system,
@@ -215,7 +215,7 @@ check_log(char *logfn, const char *offsetfn)
 		fread(&offset_position, sizeof(offset_position), 1, offsetfp);
 		fread(&size, sizeof(size), 1, offsetfp);
 		if (0 != fclose(offsetfp))
-			err(EXIT_FAILURE, NULL);
+			err(EXIT_FAILURE, "can't close '%s'", offsetfn);
 	}
 	else {
 		fgetpos(logfp, &offset_position);
@@ -255,16 +255,16 @@ check_log(char *logfn, const char *offsetfn)
 
 	/* after we are done we need to write the new offset */
 	if ((offsetfp = fopen(offsetfn, "w")) == NULL)
-		err(EXIT_FAILURE, "'%s'", offsetfn, NULL);
+		err(EXIT_FAILURE, "can't open '%s'", offsetfn);
 	/* Don't let everyone read offset */
 	if ((chmod(offsetfn, 00660)) != 0)
 		errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offsetfn);
 	fwrite(&logfstat.st_ino, sizeof(logfstat.st_ino), 1, offsetfp);
 	fwrite(&offset_position, sizeof(offset_position), 1, offsetfp);
 	if (1 != fwrite(&logfstat.st_size, sizeof(logfstat.st_size), 1, offsetfp))
-		errx(EXIT_FAILURE, "write failed");
+		err(EXIT_FAILURE, "can't write to '%s'", offsetfn);
 	if (0 != fclose(offsetfp))
-		err(EXIT_FAILURE, NULL);
+		err(EXIT_FAILURE, "can't close '%s'", offsetfn);
 	free(buf);
 	return (0);		/* everything A-OK */
 }
