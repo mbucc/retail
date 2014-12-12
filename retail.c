@@ -96,7 +96,6 @@ static int
 mostrecent(const struct conditional_data *p)
 {
 	return strncmp(p->otherfn, p->logfn, strlen(p->logfn)) == 0
-	&& strlen(p->otherfn) > strlen(p->logfn)
 	&& p->other_mtime > p->mostrecent_mtime;
 }
 
@@ -123,8 +122,11 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 	state.mostrecent_mtime = 0;
 	state.loginode = logino;
 	while ((ep = readdir(dp))) {
-		if (strcmp(ep->d_name, ".") != 0 || strcmp(ep->d_name, "..") != 0)
+		if (!strcmp(ep->d_name, ".")
+		    || !strcmp(ep->d_name, "..")
+		    || strlen(ep->d_name) <= strlen(base))
 			continue;
+
 		sz = strlen(dir) + strlen(ep->d_name) + 2;
 		if (sz > sizeof(fn))
 			errx(EXIT_FAILURE, "filename too big:	 '%s/%s'", dir, ep->d_name);
@@ -219,12 +221,12 @@ check_log(char *logfn, const char *offsetfn)
 		fread(&size, sizeof(size), 1, offsetfp);
 		if (0 != fclose(offsetfp))
 			err(EXIT_FAILURE, "can't close '%s'", offsetfn);
+
 	}
 	else {
 		fgetpos(logfp, &offset_position);
 		inode = logfstat.st_ino;
 	}
-
 
 	/*
 	 * If the current file inode is the same,
@@ -233,6 +235,7 @@ check_log(char *logfn, const char *offsetfn)
 	 * then assume the log file has been rolled
 	 * via a copy and delete.
 	 */
+
 	if ((inode == logfstat.st_ino) && (size > logfstat.st_size))
 		lastlog_finder = &mostrecent;
 	/*
@@ -246,7 +249,7 @@ check_log(char *logfn, const char *offsetfn)
 	else
 		lastlog_finder = 0;
 	if (lastlog_finder) {
-		lastlog = find_lastlog(logfn, logfstat.st_ino, lastlog_finder);
+		lastlog = find_lastlog(logfn, inode, lastlog_finder);
 		if (strlen(lastlog)) {
 			dump_changes(lastlog, offset_position);
 			offset_position = 0;
