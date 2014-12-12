@@ -155,7 +155,7 @@ dump_changes(const char *fn, const fpos_t pos)
 	size_t		charsread = 0;
 
 	if (NULL == (fp = fopen(fn, "rb")))
-		err(EXIT_FAILURE, "can't open '%s'", fn);
+		err(EXIT_FAILURE, "can't dump changes in '%s'", fn);
 
 	fsetpos(fp, &pos);
 
@@ -193,7 +193,7 @@ check_log(char *logfn, const char *offsetfn)
 	 *  a binary in case the user reads in non-text files.
 	 */
 	if ((logfp = fopen(logfn, "rb")) == NULL)
-		err(EXIT_FAILURE, "can't open '%s'", logfn);
+		err(EXIT_FAILURE, "can't check log '%s'", logfn);
 	if ((stat(logfn, &logfstat)) != 0)
 		err(EXIT_FAILURE, "can't stat '%s'", logfn);
 
@@ -255,7 +255,7 @@ check_log(char *logfn, const char *offsetfn)
 
 	/* after we are done we need to write the new offset */
 	if ((offsetfp = fopen(offsetfn, "w")) == NULL)
-		err(EXIT_FAILURE, "can't open '%s'", offsetfn);
+		err(EXIT_FAILURE, "can't write offset to '%s'", offsetfn);
 	/* Don't let everyone read offset */
 	if ((chmod(offsetfn, 00660)) != 0)
 		errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offsetfn);
