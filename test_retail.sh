@@ -83,7 +83,7 @@ line5
 line6
 line7
 EOF
-diff $D/3.act $D/3.exp && printf "." || fail "didn't follow log rotation"
+diff $D/3.act $D/3.exp && printf "." || fail "didn't follow a move log rotation"
 
 
 
@@ -107,5 +107,37 @@ line4
 line5
 EOF
 diff $D/4.act $D/4.exp && printf "." || fail "using offset directory"
+
+# If rotated via copy and trunate, output lines from old inode + lines from new file.
+LF=$D/5.log
+cat > $LF << EOF
+line1
+line2
+line3
+EOF
+$RETAIL $LF > /dev/null
+cat >> $LF << EOF
+line4
+line5
+EOF
+cp $LF $LF.1
+> $LF
+cat > $LF << EOF
+line6
+line7
+EOF
+$RETAIL  $LF > $D/5.act
+cat > $D/5.exp << EOF
+line4
+line5
+line6
+line7
+EOF
+diff $D/5.act $D/5.exp && printf "." || fail "didn't follow a copy/truncate log rotation"
+
+
+
+
+
 printf "\nSUCCESS!\n"
 #rm -rf $D
