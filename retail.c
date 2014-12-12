@@ -281,12 +281,16 @@ main(int argc, char *argv[])
 		p = argv[1];
 		if (*p == '-')
 			errx(EXIT_FAILURE, USAGE);
+		if (strlen(argv[1]) < MY_PATH_MAX - 1)
+			strcpy(logfn, argv[1]);
 		offsetfn = build_offsetfn(argv[1], NULL);
 		break;
 	case 4:
 		p = argv[1];
 		if (*p != '-' || (*p && *(p + 1) != 'o'))
 			errx(EXIT_FAILURE, USAGE);
+		if (strlen(argv[3]) < MY_PATH_MAX - 1)
+			strcpy(logfn, argv[3]);
 		offsetfn = build_offsetfn(argv[3], argv[2]);
 		break;
 	default:
