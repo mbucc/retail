@@ -147,10 +147,11 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 }
 
 
-static void
+static fpos_t
 dump_changes(const char *fn, const fpos_t pos)
 {
 	char		buf       [BUFSZ] = {0};
+	fpos_t		rval = 0;
 	FILE           *fp = 0;
 	size_t		charsread = 0;
 
@@ -162,11 +163,13 @@ dump_changes(const char *fn, const fpos_t pos)
 	do {
 		buf[0] = 0;
 		charsread = fread(buf, 1, BUFSZ, fp);
+		rval += charsread;
 		fwrite(buf, 1, charsread, stdout);
 	} while (charsread == BUFSZ);
 
 	if (0 != fclose(fp))
 		err(EXIT_FAILURE, "failed to close '%s'", fn);
+	return rval;
 }
 
 
@@ -223,7 +226,6 @@ check_log(char *logfn, const char *offsetfn)
 	}
 
 
-
 	/*
 	 * If the current file inode is the same,
 	 * but the file size has
@@ -251,7 +253,7 @@ check_log(char *logfn, const char *offsetfn)
 		}
 	}
 
-	dump_changes(logfn, offset_position);
+	offset_position += dump_changes(logfn, offset_position);
 
 	/* after we are done we need to write the new offset */
 	if ((offsetfp = fopen(offsetfn, "w")) == NULL)
