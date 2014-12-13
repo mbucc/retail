@@ -209,7 +209,8 @@ check_log(char *logfn, const char *offsetfn)
 	 */
 	if ((sizeof(fpos_t) == 4) || sizeof(logfstat.st_size) == 4) {
 		if ((logfstat.st_size > 2147483646) || (logfstat.st_size < 0))
-			errx(EXIT_FAILURE, "log file, %s, is too large at %lld bytes.\n", logfn, (long long)logfstat.st_size);
+			errx(EXIT_FAILURE, "log file, %s, is too large at %lld bytes.\n",
+				logfn, (long long)logfstat.st_size);
 	}
 
 	/*
