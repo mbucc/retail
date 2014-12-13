@@ -107,7 +107,7 @@ mostrecentgz(const struct conditional_data *p)
 	return strncmp(p->otherfn, p->logfn, strlen(p->logfn)) == 0
 	&& p->other_mtime > p->mostrecent_mtime
 	&& strlen(p->otherfn) > 2
-	&& !strcmp(p->otherfn + strlen(p->otherfn) - 2, "gz");
+	&& !strcmp(p->otherfn + strlen(p->otherfn) - 3, ".gz");
 }
 
 static char    *
