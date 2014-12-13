@@ -167,7 +167,9 @@ dump_changes(const char *fn, const fpos_t pos)
 	char		buf       [BUFSZ] = {0};
 	fpos_t		rval = 0;
 	gzFile         *fp = 0;
-	size_t		charsread = 0;
+	const char	*gzerr = 0;
+	int		gzerrno = 0;
+	int		charsread = 0;
 
 	if (NULL == (fp = gzopen(fn, "rb")))
 		err(EXIT_FAILURE, "can't dump changes in '%s'", fn);
@@ -180,9 +182,15 @@ dump_changes(const char *fn, const fpos_t pos)
 	do {
 		buf[0] = 0;
 		charsread = gzread(fp, buf, BUFSZ);
-
-		rval += charsread;
-		fwrite(buf, 1, charsread, stdout);
+		if (charsread < 0) {
+			gzerr = gzerror(fp, &gzerrno);
+			if (gzerrno == Z_ERRNO)
+				err(EXIT_FAILURE, "can't read '%s'", fn);
+			else
+				errx(EXIT_FAILURE, "can't read '%s': %s", fn, gzerr);
+		}
+		rval += (unsigned int) charsread;
+		fwrite(buf, 1, (unsigned int) charsread, stdout);
 	} while (charsread == BUFSZ);
 
 	if (0 != gzclose(fp))
