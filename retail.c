@@ -189,9 +189,9 @@ check_log(char *logfn, const char *offsetfn)
 	conditional	lastlog_finder;
 	char           *lastlog;
 	char           *buf = 0;
-	fpos_t		offset_position;
-	ino_t		inode = 0;
-	off_t		size = 0;
+	fpos_t		lastoffset;
+	ino_t		lastinode = 0;
+	off_t		lastsize = 0;
 
 	/*
 	 *  Check if the file exists in specified directory.  Open as
@@ -216,47 +216,47 @@ check_log(char *logfn, const char *offsetfn)
 	 * Load offset data.
 	 */
 	if ((offsetfp = fopen(offsetfn, "rb")) != NULL) {
-		fread(&inode, sizeof(inode), 1, offsetfp);
-		fread(&offset_position, sizeof(offset_position), 1, offsetfp);
-		fread(&size, sizeof(size), 1, offsetfp);
+		fread(&lastinode, sizeof(lastinode), 1, offsetfp);
+		fread(&lastoffset, sizeof(lastoffset), 1, offsetfp);
+		fread(&lastsize, sizeof(lastsize), 1, offsetfp);
 		if (0 != fclose(offsetfp))
 			err(EXIT_FAILURE, "can't close '%s'", offsetfn);
 
 	}
 	else {
-		fgetpos(logfp, &offset_position);
-		inode = logfstat.st_ino;
+		fgetpos(logfp, &lastoffset);
+		lastinode = logfstat.st_ino;
 	}
 
 	/*
-	 * If the current file inode is the same,
-	 * but the file size has
+	 * If the current file lastinode is the same,
+	 * but the file lastsize has
 	 * grown SMALLER than the last time we checked,
 	 * then assume the log file has been rolled
 	 * via a copy and delete.
 	 */
 
-	if ((inode == logfstat.st_ino) && (size > logfstat.st_size))
+	if ((lastinode == logfstat.st_ino) && (lastsize > logfstat.st_size))
 		lastlog_finder = &mostrecent;
 	/*
-	 * If the inode of the current log file
+	 * If the lastinode of the current log file
 	 * is different than the one store in the offset file,
 	 * then assume the log file was rotated
 	 * by a mv and then recreated.
 	 */
-	else if (inode != logfstat.st_ino)
+	else if (lastinode != logfstat.st_ino)
 		lastlog_finder = &sameinode;
 	else
 		lastlog_finder = 0;
 	if (lastlog_finder) {
-		lastlog = find_lastlog(logfn, inode, lastlog_finder);
+		lastlog = find_lastlog(logfn, lastinode, lastlog_finder);
 		if (strlen(lastlog)) {
-			dump_changes(lastlog, offset_position);
-			offset_position = 0;
+			dump_changes(lastlog, lastoffset);
+			lastoffset = 0;
 		}
 	}
 
-	offset_position += dump_changes(logfn, offset_position);
+	lastoffset += dump_changes(logfn, lastoffset);
 
 	/* after we are done we need to write the new offset */
 	if ((offsetfp = fopen(offsetfn, "w")) == NULL)
@@ -265,7 +265,7 @@ check_log(char *logfn, const char *offsetfn)
 	if ((chmod(offsetfn, 00660)) != 0)
 		errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offsetfn);
 	fwrite(&logfstat.st_ino, sizeof(logfstat.st_ino), 1, offsetfp);
-	fwrite(&offset_position, sizeof(offset_position), 1, offsetfp);
+	fwrite(&lastoffset, sizeof(lastoffset), 1, offsetfp);
 	if (1 != fwrite(&logfstat.st_size, sizeof(logfstat.st_size), 1, offsetfp))
 		err(EXIT_FAILURE, "can't write to '%s'", offsetfn);
 	if (0 != fclose(offsetfp))
