@@ -315,6 +315,8 @@ main(int argc, char *argv[])
 			errx(EXIT_FAILURE, USAGE);
 		if (strlen(argv[1]) < MY_PATH_MAX - 1)
 			strcpy(logfn, argv[1]);
+		else
+			errx(EXIT_FAILURE, "log file name too long");
 		offsetfn = build_offsetfn(argv[1], NULL);
 		break;
 	case 4:
@@ -323,6 +325,8 @@ main(int argc, char *argv[])
 			errx(EXIT_FAILURE, USAGE);
 		if (strlen(argv[3]) < MY_PATH_MAX - 1)
 			strcpy(logfn, argv[3]);
+		else
+			errx(EXIT_FAILURE, "log file name too long");
 		offsetfn = build_offsetfn(argv[3], argv[2]);
 		break;
 	default:
