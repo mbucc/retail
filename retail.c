@@ -105,9 +105,9 @@ static int
 mostrecentgz(const struct conditional_data *p)
 {
 	return strncmp(p->otherfn, p->logfn, strlen(p->logfn)) == 0
-	    && p->other_mtime > p->mostrecent_mtime
-	    && strlen(p->otherfn) > 2
-	    && !strcmp(p->otherfn + strlen(p->otherfn) - 2, "gz");
+	&& p->other_mtime > p->mostrecent_mtime
+	&& strlen(p->otherfn) > 2
+	&& !strcmp(p->otherfn + strlen(p->otherfn) - 2, "gz");
 }
 
 static char    *
@@ -161,13 +161,13 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 }
 
 
-static fpos_t
+static		fpos_t
 dump_changes(const char *fn, const fpos_t pos)
 {
 	char		buf       [BUFSZ] = {0};
 	fpos_t		rval = 0;
 	gzFile         *fp = 0;
-	const char	*gzerr = 0;
+	const char     *gzerr = 0;
 	int		gzerrno = 0;
 	int		charsread = 0;
 
@@ -189,8 +189,8 @@ dump_changes(const char *fn, const fpos_t pos)
 			else
 				errx(EXIT_FAILURE, "can't read '%s': %s", fn, gzerr);
 		}
-		rval += (unsigned int) charsread;
-		fwrite(buf, 1, (unsigned int) charsread, stdout);
+		rval += (unsigned int)charsread;
+		fwrite(buf, 1, (unsigned int)charsread, stdout);
 	} while (charsread == BUFSZ);
 
 	if (0 != gzclose(fp))
@@ -233,7 +233,7 @@ check_log(char *logfn, const char *offsetfn)
 	if ((sizeof(fpos_t) == 4) || sizeof(logfstat.st_size) == 4) {
 		if ((logfstat.st_size > 2147483646) || (logfstat.st_size < 0))
 			errx(EXIT_FAILURE, "log file, %s, is too large at %lld bytes.\n",
-				logfn, (long long)logfstat.st_size);
+			     logfn, (long long)logfstat.st_size);
 	}
 
 	/*
