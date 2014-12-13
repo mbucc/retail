@@ -1,0 +1,116 @@
+.\"
+.\" Copyright (c) 2014 Mark Bucciarelli <mkbucc@gmail.com>
+.\" 
+.\" Permission to use, copy, modify, and/or distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\" 
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\"
+.\"
+.Dd $Mdocdate: December 13, 2014  $
+.Dt RETAIL 1
+.Os
+.Sh NAME
+.Nm retail
+.Nd display the additions to a file since previous retail run
+.Sh SYNOPSIS
+.Nm retail
+.Op Fl o Ar datafile
+.Ar file
+.Sh DESCRIPTION
+The
+.Nm retail
+utility displays the lines added to a file 
+since the last retail run
+to stdout.
+.Pp
+After each run, the
+.Nm retail
+utility stores the most recent
+size, byte offset and inode
+of the given file.
+By default, this information is stored
+in the same directory
+as the file being retailed, 
+with a name of ``offset.''
+plus the log file name.
+.Pp
+The utility accepts one option:
+.Bl -tag -width -Ds
+.It Fl b Ar datafile
+The
+.Ar datafile
+stores the size, offset and inode
+information about the retail run.
+There is one datafile per log being retailed.
+If the given datafile ends in a forward slash,
+then retail stores the datafile 
+in that directory, 
+using the default file name
+described above.
+.El
+.Pp
+In some cases,
+.Nm retail
+will notice that the file has been rotated
+and tail the rotated file before
+tailing the current file.
+.Pp
+Specifically,
+if the inode is the same but the file is smaller,
+.Nm retail
+assumes the file
+was rotated via a copy and truncate,
+and
+looks for
+the most recently modified file
+(in the same directory)
+with a name that
+starts with the log file name
+and is longer
+than the log file name.
+.Pp
+If the inode is different,
+.Nm retail
+assumes the file 
+was rotated via a move and recreate, 
+and
+looks for a file with the old inode.
+If a file with that inode is not found,
+.Nm retail
+assumes the old file was gzipped
+after the move,
+and
+looks for the most recently changed file
+in the same directory
+with a name that
+starts with the log file name
+and ends with ``.gz''.
+.RE
+.Sh EXIT STATUS
+The
+.Nm retail
+utility returns 0 on success
+and 1 if an error occurs.
+.Sh EXAMPLES
+To retail syslog and store the offset information in ``/var/db/retail/offset.syslog''.
+.Pp
+.Dl $ retail -o /var/db/retail/ /var/log/syslog
+.Sh SEE ALSO
+.Xr tail 1 ,
+.Xr http://sourceforge.net/projects/logtail-v3/
+.Sh HISTORY
+.Pp
+Initially published by Craig H. Rowland in 1996,
+who was inspired
+by the retail utility
+in the Gauntlet(TM) firewall protection package,
+which was sold by Trusted Information Systems.

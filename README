@@ -1,2 +1,60 @@
-Tail log files periodically, remembering where you left off.
-Since: Fri Dec  5 00:58:56 EST 2014
+
+RETAIL(1)                 BSD General Commands Manual                RETAIL(1)
+
+NAME
+     retail -- display the additions to a file since previous retail run
+
+SYNOPSIS
+     retail [-o datafile] file
+
+DESCRIPTION
+     The retail utility displays the lines added to a file since the last
+     retail run to stdout.
+
+     After each run, the retail utility stores the most recent size, byte off-
+     set and inode of the given file.  By default, this information is stored
+     in the same directory as the file being retailed, with a name of ``off-
+     set.''  plus the log file name.
+
+     The utility accepts one option:
+
+     -b datafile
+          The datafile stores the size, offset and inode information about the
+          retail run.  There is one datafile per log being retailed.  If the
+          given datafile ends in a forward slash, then retail stores the
+          datafile in that directory, using the default file name described
+          above.
+
+     In some cases, retail will notice that the file has been rotated and tail
+     the rotated file before tailing the current file.
+
+     Specifically, if the inode is the same but the file is smaller, retail
+     assumes the file was rotated via a copy and truncate, and looks for the
+     most recently modified file (in the same directory) with a name that
+     starts with the log file name and is longer than the log file name.
+
+     If the inode is different, retail assumes the file was rotated via a move
+     and recreate, and looks for a file with the old inode.  If a file with
+     that inode is not found, retail assumes the old file was gzipped after
+     the move, and looks for the most recently changed file in the same direc-
+     tory with a name that starts with the log file name and ends with
+     ``.gz''.
+
+EXIT STATUS
+     The retail utility returns 0 on success and 1 if an error occurs.
+
+EXAMPLES
+     To retail syslog and store the offset information in
+     ``/var/db/retail/offset.syslog''.
+
+           $ retail -o /var/db/retail/ /var/log/syslog
+
+SEE ALSO
+     tail(1), http://sourceforge.net/projects/logtail-v3/
+
+HISTORY
+     Initially published by Craig H. Rowland in 1996, who was inspired by the
+     retail utility in the Gauntlet(TM) firewall protection package, which was
+     sold by Trusted Information Systems.
+
+BSD                            December 13, 2014                           BSD
