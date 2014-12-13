@@ -1,3 +1,4 @@
+n
 # !/bin/sh -e
 # Test retail does what it should.
 # Since: Wed Dec  3 16:55:07 EST 2014
@@ -136,6 +137,32 @@ EOF
 diff $D/5.act $D/5.exp && printf "." || fail "didn't follow a copy/truncate log rotation"
 
 
+# Rotated via move then gzipped.
+LF=$D/6.log
+cat > $LF << EOF
+line1
+line2
+line3
+EOF
+$RETAIL $LF > /dev/null
+cat >> $LF << EOF
+line4
+line5
+EOF
+mv $LF $LF.1
+gzip $LF.1
+cat > $LF << EOF
+line6
+line7
+EOF
+$RETAIL  $LF > $D/6.act
+cat > $D/6.exp << EOF
+line4
+line5
+line6
+line7
+EOF
+diff $D/6.act $D/6.exp && printf "." || fail "Didn't follow a gzipped move rotation."
 
 
 
