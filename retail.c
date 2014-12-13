@@ -13,6 +13,8 @@
 #include <sysexits.h>
 #include <libgen.h>
 
+#include <zlib.h>
+
 /*
  * PATH_MAX seems broken, here's a choice quote from
  *
@@ -99,6 +101,15 @@ mostrecent(const struct conditional_data *p)
 	&& p->other_mtime > p->mostrecent_mtime;
 }
 
+static int
+mostrecentgz(const struct conditional_data *p)
+{
+	return strncmp(p->otherfn, p->logfn, strlen(p->logfn)) == 0
+	    && p->other_mtime > p->mostrecent_mtime
+	    && strlen(p->otherfn) > 2
+	    && !strcmp(p->otherfn + strlen(p->otherfn) - 2, "gz");
+}
+
 static char    *
 find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 {
@@ -145,6 +156,7 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 		}
 	}
 	closedir(dp);
+
 	return rval;
 }
 
@@ -154,22 +166,26 @@ dump_changes(const char *fn, const fpos_t pos)
 {
 	char		buf       [BUFSZ] = {0};
 	fpos_t		rval = 0;
-	FILE           *fp = 0;
+	gzFile         *fp = 0;
 	size_t		charsread = 0;
 
-	if (NULL == (fp = fopen(fn, "rb")))
+	if (NULL == (fp = gzopen(fn, "rb")))
 		err(EXIT_FAILURE, "can't dump changes in '%s'", fn);
 
-	fsetpos(fp, &pos);
+	if (-1 == gzseek(fp, pos, SEEK_SET))
+		err(EXIT_FAILURE, "can't move to offset in '%s'", fn);
+
+
 
 	do {
 		buf[0] = 0;
-		charsread = fread(buf, 1, BUFSZ, fp);
+		charsread = gzread(fp, buf, BUFSZ);
+
 		rval += charsread;
 		fwrite(buf, 1, charsread, stdout);
 	} while (charsread == BUFSZ);
 
-	if (0 != fclose(fp))
+	if (0 != gzclose(fp))
 		err(EXIT_FAILURE, "failed to close '%s'", fn);
 	return rval;
 }
@@ -186,8 +202,7 @@ check_log(char *logfn, const char *offsetfn)
 	FILE           *logfp,
 	               *offsetfp;
 	struct stat	logfstat;
-	conditional	lastlog_finder;
-	char           *lastlog;
+	char           *lastlog = 0;
 	char           *buf = 0;
 	fpos_t		lastoffset;
 	ino_t		lastinode = 0;
@@ -238,19 +253,22 @@ check_log(char *logfn, const char *offsetfn)
 	 */
 
 	if ((lastinode == logfstat.st_ino) && (lastsize > logfstat.st_size))
-		lastlog_finder = &mostrecent;
+		lastlog = find_lastlog(logfn, lastinode, &mostrecent);
+
 	/*
 	 * If the lastinode of the current log file
 	 * is different than the one store in the offset file,
 	 * then assume the log file was rotated
 	 * by a mv and then recreated.
 	 */
-	else if (lastinode != logfstat.st_ino)
-		lastlog_finder = &sameinode;
+	else if (lastinode != logfstat.st_ino) {
+		lastlog = find_lastlog(logfn, lastinode, &sameinode);
+		if (!lastlog || !strlen(lastlog))
+			lastlog = find_lastlog(logfn, lastinode, &mostrecentgz);
+	}
 	else
-		lastlog_finder = 0;
-	if (lastlog_finder) {
-		lastlog = find_lastlog(logfn, lastinode, lastlog_finder);
+		lastlog = 0;
+	if (lastlog && strlen(lastlog)) {
 		if (strlen(lastlog)) {
 			dump_changes(lastlog, lastoffset);
 			lastoffset = 0;

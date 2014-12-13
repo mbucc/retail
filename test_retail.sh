@@ -1,4 +1,3 @@
-n
 # !/bin/sh -e
 # Test retail does what it should.
 # Since: Wed Dec  3 16:55:07 EST 2014
