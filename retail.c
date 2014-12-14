@@ -208,7 +208,9 @@ dump_changes(const char *fn, const fpos_t pos)
 				errx(EXIT_FAILURE, "can't read '%s': %s", fn, gzerr);
 		}
 		rval += (unsigned int)charsread;
-		fwrite(buf, 1, (unsigned int)charsread, stdout);
+		if ((unsigned int)charsread != fwrite(buf, 1, (unsigned int)charsread, stdout))
+			err(EXIT_FAILURE, "error writing changes to stdout");
+
 	} while (charsread == BUFSZ);
 
 	if (0 != gzclose(fp))
