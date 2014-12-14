@@ -1,3 +1,5 @@
+BIND=/usr/local/bin
+MAND=/usr/local/share/man/man1
 
 all: README retail
 
@@ -28,20 +30,18 @@ test: lint test_retail.sh
 #
 #--------------------------------------------------------
 
-README: retail.3
+README: retail.1
 	@# Zap backspace character (^H) and preceding char
 	groff -Tascii -man $? | sed -e 's/.//g' >> t
 	mv t $@
 
 
-BIND=/usr/local/bin
-MAND=/usr/share/man/man3
-install: ${BIND}/retail ${MAND}/retail.3
+install: ${BIND}/retail ${MAND}/retail.1
 
 ${BIND}/retail: retail
 	cp -p $? $@
 
-${MAND}/retail.3: retail.3
+${MAND}/retail.1: retail.1
 	cp -p $? $@
 
 #--------------------------------------------------------
