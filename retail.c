@@ -263,7 +263,7 @@ check_log(char *logfn, const char *offsetfn)
 		if (0 != fclose(offsetfp))
 			err(EXIT_FAILURE, "can't close '%s'", offsetfn);
 		if (lastoffset > lastsize)
-			errx(EXIT_FAILURE, "Offset (%lld) greater than size (%lld) in '%s'",
+			errx(EXIT_FAILURE, "last offset (%lld) greater than last size (%lld) in '%s'",
 			    lastoffset, lastsize, offsetfn);
 
 	}
@@ -304,19 +304,29 @@ check_log(char *logfn, const char *offsetfn)
 
 	lastoffset += dump_changes(logfn, lastoffset);
 
-	/* after we are done we need to write the new offset */
+	/* 
+	 * Write the new offset data.
+	 */
 	if ((offsetfp = fopen(offsetfn, "w")) == NULL)
 		err(EXIT_FAILURE, "can't write offset to '%s'", offsetfn);
-	/* Don't let everyone read offset */
+
 	if ((chmod(offsetfn, 00660)) != 0)
 		err(EXIT_FAILURE, "Cannot set permissions on file %s", offsetfn);
-	fwrite(&logfstat.st_ino, sizeof(logfstat.st_ino), 1, offsetfp);
-	fwrite(&lastoffset, sizeof(lastoffset), 1, offsetfp);
+
+	if (1 != fwrite(&logfstat.st_ino, sizeof(logfstat.st_ino), 1, offsetfp))
+		err(EXIT_FAILURE, "can't write last inode to '%s'", offsetfn);
+
+	if (1 != fwrite(&lastoffset, sizeof(lastoffset), 1, offsetfp))
+		err(EXIT_FAILURE, "can't write last offset to '%s'", offsetfn);
+
 	if (1 != fwrite(&logfstat.st_size, sizeof(logfstat.st_size), 1, offsetfp))
-		err(EXIT_FAILURE, "can't write to '%s'", offsetfn);
+		err(EXIT_FAILURE, "can't write last size to '%s'", offsetfn);
+
 	if (0 != fclose(offsetfp))
 		err(EXIT_FAILURE, "can't close '%s'", offsetfn);
-	return (0);		/* everything A-OK */
+
+	return(0);
+
 }
 
 int
