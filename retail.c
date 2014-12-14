@@ -310,7 +310,7 @@ check_log(char *logfn, const char *offsetfn)
 		err(EXIT_FAILURE, "can't write offset to '%s'", offsetfn);
 	/* Don't let everyone read offset */
 	if ((chmod(offsetfn, 00660)) != 0)
-		errx(EXIT_FAILURE, "Cannot set permissions on file %s\n", offsetfn);
+		err(EXIT_FAILURE, "Cannot set permissions on file %s", offsetfn);
 	fwrite(&logfstat.st_ino, sizeof(logfstat.st_ino), 1, offsetfp);
 	fwrite(&lastoffset, sizeof(lastoffset), 1, offsetfp);
 	if (1 != fwrite(&logfstat.st_size, sizeof(logfstat.st_size), 1, offsetfp))
