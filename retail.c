@@ -28,7 +28,7 @@
  */
 #define MY_PATH_MAX 1024
 #define BUFSZ 4096
-#define USAGE "retail [-o <offset filename>] <log filename>"
+#define USAGE "Usage: retail [-o <offset filename>] <log filename>"
 
 static char    *
 build_offsetfn(char *logfn, char *offsetfn)
