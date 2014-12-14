@@ -297,11 +297,10 @@ check_log(char *logfn, const char *offsetfn)
 	}
 	else
 		lastlog = 0;
+
 	if (lastlog && strlen(lastlog)) {
-		if (strlen(lastlog)) {
-			dump_changes(lastlog, lastoffset);
-			lastoffset = 0;
-		}
+		dump_changes(lastlog, lastoffset);
+		lastoffset = 0;
 	}
 
 	lastoffset += dump_changes(logfn, lastoffset);
