@@ -245,6 +245,9 @@ check_log(char *logfn, const char *offsetfn)
 		fread(&lastsize, sizeof(lastsize), 1, offsetfp);
 		if (0 != fclose(offsetfp))
 			err(EXIT_FAILURE, "can't close '%s'", offsetfn);
+		if (lastoffset > lastsize)
+			errx(EXIT_FAILURE, "Offset (%lld) greater than size (%lld) in '%s'",
+			    lastoffset, lastsize, offsetfn);
 
 	}
 	else {
