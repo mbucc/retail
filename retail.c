@@ -229,7 +229,6 @@ check_log(char *logfn, const char *offsetfn)
 	               *offsetfp;
 	struct stat	logfstat;
 	char           *lastlog = 0;
-	char           *buf = 0;
 	fpos_t		lastoffset;
 	ino_t		lastinode = 0;
 	off_t		lastsize = 0;
@@ -317,7 +316,6 @@ check_log(char *logfn, const char *offsetfn)
 		err(EXIT_FAILURE, "can't write to '%s'", offsetfn);
 	if (0 != fclose(offsetfp))
 		err(EXIT_FAILURE, "can't close '%s'", offsetfn);
-	free(buf);
 	return (0);		/* everything A-OK */
 }
 
