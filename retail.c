@@ -173,7 +173,8 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 			strcpy(rval, fn);
 		}
 	}
-	closedir(dp);
+	if (-1 == closedir(dp))
+		err(EXIT_FAILURE, "can't close directory '%s'", dir);
 
 	return rval;
 }
@@ -195,8 +196,6 @@ dump_changes(const char *fn, const fpos_t pos)
 	if (-1 == gzseek(fp, pos, SEEK_SET))
 		err(EXIT_FAILURE, "can't move to offset in '%s'", fn);
 
-
-
 	do {
 		buf[0] = 0;
 		charsread = gzread(fp, buf, BUFSZ);
@@ -215,6 +214,7 @@ dump_changes(const char *fn, const fpos_t pos)
 
 	if (0 != gzclose(fp))
 		err(EXIT_FAILURE, "failed to close '%s'", fn);
+
 	return rval;
 }
 
