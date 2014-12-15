@@ -1,36 +1,33 @@
 /**
  *  retail.c -- ASCII file tail program that remembers last position.
- *    
+ *
  *      Copyright (c) 1996 Craig H. Rowland <crowland@psionic.com>
  *      Copyright (c) Ross Moffatt <ross.stuff@telstra.com>
  *      Copyright (c) 2014 Mark Bucciarelli <mkbucc@gmail.com>
- *    
+ *
  *      This program is free software; you can redistribute it and/or
  *      modify it under the terms of the GNU Lesser General Public License
  *      Version 2.1 as published by the Free Software Foundation.
- *    
+ *
  *      This program is distributed in the hope that it will be useful,
  *      but WITHOUT ANY WARRANTY; without even the implied warranty of
  *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *      Lesser General Public License for more details.
- *    
+ *
  *      You should have received a copy of the GNU Lesser General Public
  *      License along with this program; if not, write to the Free Software
  *      Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
+#include <sys/stat.h>
+
+#include <dirent.h>
 #include <err.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <sysexits.h>
-#include <libgen.h>
-
 #include <zlib.h>
 
 /*
@@ -269,7 +266,7 @@ check_log(char *logfn, const char *offsetfn)
 			err(EXIT_FAILURE, "can't close '%s'", offsetfn);
 		if (lastoffset > lastsize)
 			errx(EXIT_FAILURE, "last offset (%lld) greater than last size (%lld) in '%s'",
-			    lastoffset, lastsize, offsetfn);
+			     lastoffset, lastsize, offsetfn);
 
 	}
 	else {
@@ -310,7 +307,7 @@ check_log(char *logfn, const char *offsetfn)
 
 	lastoffset += dump_changes(logfn, lastoffset);
 
-	/* 
+	/*
 	 * Write the new offset data.
 	 */
 	if ((offsetfp = fopen(offsetfn, "w")) == NULL)
@@ -331,7 +328,7 @@ check_log(char *logfn, const char *offsetfn)
 	if (0 != fclose(offsetfp))
 		err(EXIT_FAILURE, "can't close '%s'", offsetfn);
 
-	return(0);
+	return (0);
 
 }
 
