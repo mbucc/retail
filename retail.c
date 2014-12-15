@@ -259,9 +259,12 @@ check_log(char *logfn, const char *offsetfn)
 	 * Load offset data.
 	 */
 	if ((offsetfp = fopen(offsetfn, "rb")) != NULL) {
-		fread(&lastinode, sizeof(lastinode), 1, offsetfp);
-		fread(&lastoffset, sizeof(lastoffset), 1, offsetfp);
-		fread(&lastsize, sizeof(lastsize), 1, offsetfp);
+		if (1 != fread(&lastinode, sizeof(lastinode), 1, offsetfp))
+			errx(EXIT_FAILURE, "error reading last inode from '%s'", offsetfn);
+		if (1 != fread(&lastoffset, sizeof(lastoffset), 1, offsetfp))
+			errx(EXIT_FAILURE, "error reading last offset from '%s'", offsetfn);
+		if (1 != fread(&lastsize, sizeof(lastsize), 1, offsetfp))
+			errx(EXIT_FAILURE, "error reading last size from '%s'", offsetfn);
 		if (0 != fclose(offsetfp))
 			err(EXIT_FAILURE, "can't close '%s'", offsetfn);
 		if (lastoffset > lastsize)
