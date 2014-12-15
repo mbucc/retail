@@ -273,7 +273,8 @@ check_log(char *logfn, const char *offsetfn)
 
 	}
 	else {
-		fgetpos(logfp, &lastoffset);
+		if (-1 == fgetpos(logfp, &lastoffset))
+			err(EXIT_FAILURE, "can't get position in '%s'", logfn);
 		lastinode = logfstat.st_ino;
 	}
 
