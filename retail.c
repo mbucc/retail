@@ -177,11 +177,11 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 }
 
 
-static		fpos_t
-dump_changes(const char *fn, const fpos_t pos)
+static		z_off_t
+dump_changes(const char *fn, const z_off_t pos)
 {
 	char		buf       [BUFSZ] = {0};
-	fpos_t		rval = 0;
+	z_off_t		rval = 0;
 	gzFile         *fp = 0;
 	const char     *gzerr = 0;
 	int		gzerrno = 0;
@@ -228,9 +228,9 @@ check_log(char *logfn, const char *offsetfn)
 	               *offsetfp;
 	struct stat	logfstat;
 	char           *lastlog = 0;
-	fpos_t		lastoffset;
+	z_off_t		lastoffset;
 	ino_t		lastinode = 0;
-	off_t		lastsize = 0;
+	z_off_t		lastsize = 0;
 
 	/*
 	 *  Check if the file exists in specified directory.  Open as
@@ -265,13 +265,12 @@ check_log(char *logfn, const char *offsetfn)
 		if (0 != fclose(offsetfp))
 			err(EXIT_FAILURE, "can't close '%s'", offsetfn);
 		if (lastoffset > lastsize)
-			errx(EXIT_FAILURE, "last offset (%lld) greater than last size (%lld) in '%s'",
+			errx(EXIT_FAILURE, "last offset (%ld) greater than last size (%ld) in '%s'",
 			     lastoffset, lastsize, offsetfn);
 
 	}
 	else {
-		if (-1 == fgetpos(logfp, &lastoffset))
-			err(EXIT_FAILURE, "can't get position in '%s'", logfn);
+		lastoffset = 0;
 		lastinode = logfstat.st_ino;
 	}
 
