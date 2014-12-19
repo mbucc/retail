@@ -1,10 +1,12 @@
 BIND=/usr/local/bin
 MAND=/usr/local/share/man/man1
+#CC=gcc
+CC=clang
 
 all: README retail
 
 retail: retail.c
-	clang -lz -o $@ $?
+	${CC} -lz -o $@ $?
 
 
 #--------------------------------------------------------
@@ -17,7 +19,7 @@ retail: retail.c
 # http://lcamtuf.coredump.cx/afl/
 # https://code.google.com/p/address-sanitizer/wiki/AddressSanitizer
 lint: retail.c
-	clang -lz -Weverything -o retail $?
+	${CC} -lz -Weverything -o retail $?
 
 	
 test: lint test_retail.sh
@@ -68,7 +70,7 @@ clean:
 #--------------------------------------------------------
 # 
 # AFLVERS=0.89b
-# AFL=afl-clang
+# AFL=afl-${CC}
 # 
 # afl-${AFLVERS}.tgz:
 # 	curl http://lcamtuf.coredump.cx/afl/releases/afl-${AFLVERS}.tgz > t
