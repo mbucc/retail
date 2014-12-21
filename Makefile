@@ -42,6 +42,7 @@ install: ${BIND}/retail ${MAND}/retail.1
 
 ${BIND}/retail: retail
 	cp -p $? $@
+	chmod 755 $@
 
 ${MAND}/retail.1: retail.1
 	cp -p $? $@
