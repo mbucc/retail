@@ -45,8 +45,40 @@
 #define BUFSZ 4096
 #define USAGE "Usage: retail [-o <offset filename>] <log filename>"
 
+static char	*
+mybasename(const char *logfn)
+{
+	static char	buf[MY_PATH_MAX] = {0};
+
+	if (!logfn || !strlen(logfn))
+		return buf;
+
+	if (strlen(logfn) > MY_PATH_MAX - 1)
+		errx(EXIT_FAILURE, "can't get basename, filename too long: '%s'", logfn);
+
+	strcpy(buf, logfn);
+
+	return basename(buf);
+}
+
+static char	*
+mydirname(const char *logfn)
+{
+	static char	buf[MY_PATH_MAX] = {0};
+
+	if (!logfn || !strlen(logfn))
+		return buf;
+
+	if (strlen(logfn) > MY_PATH_MAX - 1)
+		errx(EXIT_FAILURE, "can't get dirname, filename too long: '%s'", logfn);
+
+	strcpy(buf, logfn);
+
+	return dirname(buf);
+}
+
 static char    *
-build_offsetfn(char *logfn, char *offsetfn)
+build_offsetfn(const char *logfn, char *offsetfn)
 {
 	static char	rval[MY_PATH_MAX] = {0};
 	size_t		sz = 0;
@@ -67,24 +99,24 @@ build_offsetfn(char *logfn, char *offsetfn)
 	else if (offsetfn && strlen(offsetfn) && offsetfn[strlen(offsetfn) - 1] == '/') {
 		if (!logfn || strlen(logfn) == 0)
 			errx(EXIT_FAILURE, "log filename is empty");
-		sz = strlen(offsetfn) + strlen("offset.") + strlen(basename(logfn));
+		sz = strlen(offsetfn) + strlen("offset.") + strlen(mybasename(logfn));
 		if (sz > MY_PATH_MAX - 1)
 			errx(EXIT_FAILURE, "offset filename is too long");
 		strcpy(rval, offsetfn);
 		strcat(rval, "offset.");
-		strcat(rval, basename(logfn));
+		strcat(rval, mybasename(logfn));
 	}
 
 	/*
 	 * No offset filename specified.
 	 */
 	else if (!offsetfn || !strlen(offsetfn)) {
-		sz = strlen(dirname(logfn)) + strlen("/offset.") + strlen(basename(logfn));
+		sz = strlen(mydirname(logfn)) + strlen("/offset.") + strlen(mybasename(logfn));
 		if (sz > MY_PATH_MAX - 1)
 			errx(EXIT_FAILURE, "offset filename is too long");
-		strcpy(rval, dirname(logfn));
+		strcpy(rval, mydirname(logfn));
 		strcat(rval, "/offset.");
-		strcat(rval, basename(logfn));
+		strcat(rval, mybasename(logfn));
 	}
 
 	else
@@ -126,7 +158,7 @@ mostrecentgz(const struct conditional_data *p)
 }
 
 static char    *
-find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
+find_lastlog(const char *logfn, ino_t logino, conditional update_lastlog)
 {
 	static char	rval[MY_PATH_MAX] = {0};
 	char		fn        [MY_PATH_MAX] = {0};
@@ -138,8 +170,8 @@ find_lastlog(char *logfn, ino_t logino, conditional update_lastlog)
 	char           *base = 0;
 	size_t		sz = 0;
 
-	dir = dirname(logfn);
-	base = basename(logfn);
+	dir = mydirname(logfn);
+	base = mybasename(logfn);
 	if (NULL == (dp = opendir(dir)))
 		err(EXIT_FAILURE, "can't open directory '%s'", dir, NULL);
 
@@ -232,7 +264,7 @@ dump_changes(const char *fn, const z_off_t pos)
  * and update offset.
  */
 static int
-check_log(char *logfn, const char *offsetfn)
+check_log(const char *logfn, const char *offsetfn)
 {
 	FILE           *logfp,
 	               *offsetfp;
