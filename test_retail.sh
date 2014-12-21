@@ -163,6 +163,10 @@ line7
 EOF
 diff $D/6.act $D/6.exp && printf "." || fail "Didn't follow a gzipped move rotation."
 
+# Dumping an empty log file is not an error.
+LF=$D/7\.log
+touch $LF
+$RETAIL $LF > /dev/null
 
 
 printf "\nSUCCESS!\n"

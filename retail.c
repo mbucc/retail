@@ -181,11 +181,13 @@ static		z_off_t
 dump_changes(const char *fn, const z_off_t pos)
 {
 	char		buf       [BUFSZ] = {0};
+	unsigned long	total_charsread = 0;
 	z_off_t		rval = 0;
 	gzFile         *fp = 0;
 	const char     *gzerr = 0;
 	int		gzerrno = 0;
 	int		charsread = 0;
+	int		rc = 0;
 
 	if (NULL == (fp = gzopen(fn, "rb")))
 		err(EXIT_FAILURE, "can't dump changes in '%s'", fn);
@@ -196,6 +198,7 @@ dump_changes(const char *fn, const z_off_t pos)
 	do {
 		buf[0] = 0;
 		charsread = gzread(fp, buf, BUFSZ);
+		total_charsread += (unsigned long)charsread;
 		if (charsread < 0) {
 			gzerr = gzerror(fp, &gzerrno);
 			if (gzerrno == Z_ERRNO)
@@ -209,7 +212,14 @@ dump_changes(const char *fn, const z_off_t pos)
 
 	} while (charsread == BUFSZ);
 
-	if (0 != gzclose(fp))
+	rc = gzclose(fp);
+	/*
+	 * On Ubuntu Lucid, the zlib.h in zlib1g-dev returns Z_BUF_ERROR
+	 * when gzclose'ing an empty file.
+	 *
+	 * This behavior does not manifest on OSX.
+	 */
+	if (!(rc == 0 || (rc == Z_BUF_ERROR && total_charsread == 0)))
 		err(EXIT_FAILURE, "failed to close '%s'", fn);
 
 	return rval;
