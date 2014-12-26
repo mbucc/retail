@@ -208,6 +208,19 @@ find_lastlog(const char *logfn, ino_t logino, conditional update_lastlog)
 	return rval;
 }
 
+static void
+gzdie(gzFile *fp, const char *fn)
+{
+	int		emsgno;
+	const char	*emsg = 0;
+
+	emsg = gzerror(fp, &emsgno);
+	if (emsgno == Z_ERRNO)
+		err(EXIT_FAILURE, "can't read '%s'", fn);
+	else
+		errx(EXIT_FAILURE, "can't read '%s': %s", fn, emsg);
+}
+
 
 static		z_off_t
 dump_changes(const char *fn, const z_off_t pos)
@@ -216,8 +229,6 @@ dump_changes(const char *fn, const z_off_t pos)
 	unsigned long	total_charsread = 0;
 	z_off_t		rval = 0;
 	gzFile         *fp = 0;
-	const char     *gzerr = 0;
-	int		gzerrno = 0;
 	int		charsread = 0;
 	int		rc = 0;
 
@@ -225,19 +236,14 @@ dump_changes(const char *fn, const z_off_t pos)
 		err(EXIT_FAILURE, "can't dump changes in '%s'", fn);
 
 	if (-1 == gzseek(fp, pos, SEEK_SET))
-		err(EXIT_FAILURE, "can't move to offset in '%s'", fn);
+		gzdie(fp, fn);
 
 	do {
 		buf[0] = 0;
 		charsread = gzread(fp, buf, BUFSZ);
 		total_charsread += (unsigned long)charsread;
-		if (charsread < 0) {
-			gzerr = gzerror(fp, &gzerrno);
-			if (gzerrno == Z_ERRNO)
-				err(EXIT_FAILURE, "can't read '%s'", fn);
-			else
-				errx(EXIT_FAILURE, "can't read '%s': %s", fn, gzerr);
-		}
+		if (charsread < 0)
+			gzdie(fp, fn);
 		rval += (unsigned int)charsread;
 		if ((unsigned int)charsread != fwrite(buf, 1, (unsigned int)charsread, stdout))
 			err(EXIT_FAILURE, "error writing changes to stdout");
