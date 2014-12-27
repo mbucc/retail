@@ -47,10 +47,10 @@
 #define USAGE "Usage: retail [-o <offset filename>] <log filename>"
 
 
-static char	*
+static char    *
 mybasename(const char *logfn)
 {
-	static char	buf[MY_PATH_MAX] = {0};
+	static char	buf [MY_PATH_MAX] = {0};
 
 	if (!logfn || !strlen(logfn))
 		return buf;
@@ -63,10 +63,10 @@ mybasename(const char *logfn)
 	return basename(buf);
 }
 
-static char	*
+static char    *
 mydirname(const char *logfn)
 {
-	static char	buf[MY_PATH_MAX] = {0};
+	static char	buf [MY_PATH_MAX] = {0};
 
 	if (!logfn || !strlen(logfn))
 		return buf;
@@ -211,13 +211,13 @@ find_lastlog(const char *logfn, ino_t logino, conditional update_lastlog)
 	return rval;
 }
 
-__attribute__ ((format (printf, 2, 3)))
-__attribute__ ((noreturn))
+__attribute__((format(printf, 2, 3)))
+__attribute__((noreturn))
 static void
-gzdie(gzFile *fp, const char *fmt, ...)
+gzdie(gzFile * fp, const char *fmt,...)
 {
 	va_list		args;
-	const char	*emsg = 0;
+	const char     *emsg = 0;
 	int		emsgno;
 
 	emsg = gzerror(fp, &emsgno);
