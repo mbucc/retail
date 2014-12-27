@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <err.h>
 #include <libgen.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +45,7 @@
 #define MY_PATH_MAX 1024
 #define BUFSZ 4096
 #define USAGE "Usage: retail [-o <offset filename>] <log filename>"
+
 
 static char	*
 mybasename(const char *logfn)
@@ -209,17 +211,22 @@ find_lastlog(const char *logfn, ino_t logino, conditional update_lastlog)
 	return rval;
 }
 
+__attribute__ ((format (printf, 2, 3)))
+__attribute__ ((noreturn))
 static void
-gzdie(gzFile *fp, const char *fn)
+gzdie(gzFile *fp, const char *fmt, ...)
 {
-	int		emsgno;
+	va_list		args;
 	const char	*emsg = 0;
+	int		emsgno;
 
 	emsg = gzerror(fp, &emsgno);
+	va_start(args, fmt);
 	if (emsgno == Z_ERRNO)
-		err(EXIT_FAILURE, "can't read '%s'", fn);
+		verr(EXIT_FAILURE, fmt, args);
 	else
-		errx(EXIT_FAILURE, "can't read '%s': %s", fn, emsg);
+		verrx(EXIT_FAILURE, fmt, args);
+	va_end(args);
 }
 
 
@@ -237,14 +244,14 @@ dump_changes(const char *fn, const z_off_t pos)
 		err(EXIT_FAILURE, "can't dump changes in '%s'", fn);
 
 	if (-1 == gzseek(fp, pos, SEEK_SET))
-		gzdie(fp, fn);
+		gzdie(fp, "can't gzseek to %ld in %s", pos, fn);
 
 	do {
 		buf[0] = 0;
 		charsread = gzread(fp, buf, BUFSZ);
 		total_charsread += (unsigned long)charsread;
 		if (charsread < 0)
-			gzdie(fp, fn);
+			gzdie(fp, "can't gzread from %s", fn);
 		rval += (unsigned int)charsread;
 		if ((unsigned int)charsread != fwrite(buf, 1, (unsigned int)charsread, stdout))
 			err(EXIT_FAILURE, "error writing changes to stdout");
