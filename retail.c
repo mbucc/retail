@@ -138,7 +138,8 @@ typedef int     (*conditional) (const struct conditional_data *);
 static int
 sameinode(const struct conditional_data *p)
 {
-	return p->loginode == p->otherinode;
+	return p->loginode == p->otherinode
+	&& strncmp(p->otherfn, p->logfn, strlen(p->logfn)) == 0;
 }
 
 static int
@@ -330,8 +331,17 @@ check_log(const char *logfn, const char *offsetfn)
 	 * via a copy and delete.
 	 */
 
-	if ((lastinode == logfstat.st_ino) && (lastsize > logfstat.st_size))
+	if ((lastinode == logfstat.st_ino) && (lastsize > logfstat.st_size)) {
 		lastlog = find_lastlog(logfn, lastinode, &mostrecent);
+
+		/*
+		 * If we can't find the old log file,
+		 * reset the last offset to zero
+		 * so we dump the entire current log.
+		 */
+		if (!lastlog || !strlen(lastlog))
+			lastoffset = 0;
+	}
 
 	/*
 	 * If the lastinode of the current log file
@@ -343,6 +353,9 @@ check_log(const char *logfn, const char *offsetfn)
 		lastlog = find_lastlog(logfn, lastinode, &sameinode);
 		if (!lastlog || !strlen(lastlog))
 			lastlog = find_lastlog(logfn, lastinode, &mostrecentgz);
+
+		if (!lastlog || !strlen(lastlog))
+			lastoffset = 0;
 	}
 	else
 		lastlog = 0;
