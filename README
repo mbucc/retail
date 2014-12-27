@@ -55,11 +55,12 @@ EXAMPLES
            $ retail -o /var/db/retail/ /var/log/syslog
 
 SEE ALSO
-     tail(1), http://sourceforge.net/projects/logtail-v3/
+     tail(1), http://sourceforge.net/projects/logtail-v3/,
+     http://ranum.com/security/computer_security/code/index.html
 
 HISTORY
      Initially published by Craig H. Rowland in 1996.  He got the idea from
      the retail utility, which came with Trusted Information Systems' Gaunt-
      let(TM) firewall protection package.
 
-BSD                            December 14, 2014                           BSD
+BSD                            December 27, 2014                           BSD
