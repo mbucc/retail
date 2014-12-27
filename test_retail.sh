@@ -169,5 +169,38 @@ touch $LF
 $RETAIL $LF > /dev/null
 
 
+# If inode matches, make sure base name does too.
+# In practice, 
+# I saw inodes reused.
+# Specifically, 
+# the lastinode in the auth.log offset file 
+# was being used by syslog.2.gz.
+# Once a file is gzipped (e.g., auth.log),
+# the inode of the ungzipped file 
+# becomes available.
+LF=$D/8.log
+cat > $LF << EOF
+line1
+line2
+line3
+EOF
+$RETAIL $LF > /dev/null
+cat >> $LF << EOF
+line4
+line5
+EOF
+mv $LF $D/abc.8.log.1
+cat > $LF << EOF
+line6
+line7
+EOF
+$RETAIL  $LF > $D/8.act
+cat > $D/8.exp << EOF
+line6
+line7
+EOF
+diff $D/8.act $D/8.exp && printf "." || fail "Didn't check base name."
+
+
 printf "\nSUCCESS!\n"
 #rm -rf $D
