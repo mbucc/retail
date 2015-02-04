@@ -19,7 +19,7 @@ DESCRIPTION
 
      The utility accepts one option:
 
-     -b datafile
+     -o datafile
           The datafile option lets you specify where to store the data from
           the last run.  If the option specifies a file, the data is stored in
           that file.  If a directory, the data is stored in that directory,
