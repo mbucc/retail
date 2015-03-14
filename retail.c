@@ -405,7 +405,7 @@ check_log(const char *logfn, const char *offsetfn)
 
 	lastoffset += dump_changes(logfn, lastoffset);
 	if (lastoffset > logfstat.st_size) {
-		syslog(LOG_ERR, "offset > st_size (%lu > %lld), setting size to offset", lastoffset, (long long int)logfstat.st_size);
+		syslog(LOG_DEBUG, "offset > st_size (%lu > %lld), setting size to offset", lastoffset, (long long int)logfstat.st_size);
 		logfstat.st_size = lastoffset;
 	}
 
