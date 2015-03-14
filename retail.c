@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <zlib.h>
 
 /*
@@ -264,6 +265,8 @@ dump_changes(const char *fn, const z_off_t pos)
 	int		charsread = 0;
 	int		rc = 0;
 
+	syslog(LOG_DEBUG, "dump_changes('%s', %lu)", fn, pos);
+
 	if (NULL == (fp = gzopen(fn, "rb")))
 		err(EXIT_FAILURE, "can't dump changes in '%s'", fn);
 
@@ -290,6 +293,8 @@ dump_changes(const char *fn, const z_off_t pos)
 	 */
 	if (!(rc == 0 || (rc == Z_BUF_ERROR && rval == 0)))
 		err(EXIT_FAILURE, "failed to close '%s'", fn);
+
+	syslog(LOG_DEBUG, "dump_changes returns %lu (bytes read)", rval);
 
 	return rval;
 }
@@ -319,6 +324,9 @@ check_log(const char *logfn, const char *offsetfn)
 		err(EXIT_FAILURE, "can't check log '%s'", logfn);
 	if ((stat(logfn, &logfstat)) != 0)
 		err(EXIT_FAILURE, "can't stat '%s'", logfn);
+
+	syslog(LOG_DEBUG, "check_log: st_size of '%s' = %lld", logfn, logfstat.st_size);
+
 
 	/*
 	 * If we are on a 32-bit system,
@@ -396,6 +404,10 @@ check_log(const char *logfn, const char *offsetfn)
 	}
 
 	lastoffset += dump_changes(logfn, lastoffset);
+	if (lastoffset > logfstat.st_size) {
+		syslog(LOG_ERR, "offset > st_size (%lu > %lld), setting size to offset", lastoffset, logfstat.st_size);
+		logfstat.st_size = lastoffset;
+	}
 
 	/*
 	 * Write the new offset data.
@@ -429,6 +441,8 @@ main(int argc, char *argv[])
 	char           *offsetfn = 0;
 	char           *p;
 
+	openlog("retail", LOG_PID, LOG_USER);
+
 	switch (argc) {
 	case 2:
 		p = argv[1];
@@ -455,6 +469,8 @@ main(int argc, char *argv[])
 	}
 
 	check_log(logfn, offsetfn);
+
+	closelog();
 
 	return 0;
 }
