@@ -47,6 +47,9 @@
 #define USAGE "Usage: retail [-o <offset filename>] <log filename>"
 
 
+/*
+ *  The regular basename behaves differently on different operating systems.
+ */
 static char    *
 mybasename(const char *logfn)
 {
@@ -63,6 +66,9 @@ mybasename(const char *logfn)
 	return basename(buf);
 }
 
+/*
+ * Same for dirname
+ */
 static char    *
 mydirname(const char *logfn)
 {
@@ -135,6 +141,9 @@ struct conditional_data {
 	const char     *otherfn;
 };
 
+/*
+ * A conditional is a function that defines what the last log is.
+ */
 typedef int     (*conditional) (const struct conditional_data *);
 
 static int
@@ -160,6 +169,9 @@ mostrecentgz(const struct conditional_data *p)
 	&& !strcmp(p->otherfn + strlen(p->otherfn) - 3, ".gz");
 }
 
+/*
+ * Find the rotated log.
+ */
 static char    *
 find_lastlog(const char *logfn, ino_t logino, conditional update_lastlog)
 {
@@ -200,6 +212,15 @@ find_lastlog(const char *logfn, ino_t logino, conditional update_lastlog)
 		state.otherfn = ep->d_name;
 		state.other_mtime = fstat.st_mtime;
 		state.otherinode = fstat.st_ino;
+
+		/*
+			If this is a "more recent" log file,
+			update current pointer to the last
+			log.  I put "more recent" in quotes
+			because the specific conditional
+			depends on what kind of rotation
+			was used.
+		*/
 		if ((*update_lastlog) (&state)) {
 			state.mostrecent_mtime = fstat.st_mtime;
 			strcpy(rval, fn);
@@ -213,8 +234,8 @@ find_lastlog(const char *logfn, ino_t logino, conditional update_lastlog)
 
 __attribute__((format(printf, 2, 3)))
 __attribute__((noreturn))
-static void
-gzdie(gzFile * fp, const char *fmt,...)
+	static void
+			gzdie         (gzFile * fp, const char *fmt,...)
 {
 	va_list		args;
 	const char     *emsg = 0;
@@ -230,6 +251,10 @@ gzdie(gzFile * fp, const char *fmt,...)
 }
 
 
+/*
+ * Given a filename and an offset, print all bytes after offset to stdout.
+ * Works for gzipped and ungzipped files.
+ */
 static		z_off_t
 dump_changes(const char *fn, const z_off_t pos)
 {
