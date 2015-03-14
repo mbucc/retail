@@ -259,7 +259,6 @@ static		z_off_t
 dump_changes(const char *fn, const z_off_t pos)
 {
 	char		buf       [BUFSZ] = {0};
-	unsigned long	total_charsread = 0;
 	z_off_t		rval = 0;
 	gzFile         *fp = 0;
 	int		charsread = 0;
@@ -274,7 +273,6 @@ dump_changes(const char *fn, const z_off_t pos)
 	do {
 		buf[0] = 0;
 		charsread = gzread(fp, buf, BUFSZ);
-		total_charsread += (unsigned long)charsread;
 		if (charsread < 0)
 			gzdie(fp, "can't gzread from %s", fn);
 		rval += (unsigned int)charsread;
@@ -290,7 +288,7 @@ dump_changes(const char *fn, const z_off_t pos)
 	 *
 	 * This behavior does not manifest on OSX.
 	 */
-	if (!(rc == 0 || (rc == Z_BUF_ERROR && total_charsread == 0)))
+	if (!(rc == 0 || (rc == Z_BUF_ERROR && rval == 0)))
 		err(EXIT_FAILURE, "failed to close '%s'", fn);
 
 	return rval;
