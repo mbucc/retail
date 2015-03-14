@@ -325,7 +325,7 @@ check_log(const char *logfn, const char *offsetfn)
 	if ((stat(logfn, &logfstat)) != 0)
 		err(EXIT_FAILURE, "can't stat '%s'", logfn);
 
-	syslog(LOG_DEBUG, "check_log: st_size of '%s' = %lld", logfn, logfstat.st_size);
+	syslog(LOG_DEBUG, "check_log: st_size of '%s' = %lld", logfn, (long long int)logfstat.st_size);
 
 
 	/*
@@ -405,7 +405,7 @@ check_log(const char *logfn, const char *offsetfn)
 
 	lastoffset += dump_changes(logfn, lastoffset);
 	if (lastoffset > logfstat.st_size) {
-		syslog(LOG_ERR, "offset > st_size (%lu > %lld), setting size to offset", lastoffset, logfstat.st_size);
+		syslog(LOG_ERR, "offset > st_size (%lu > %lld), setting size to offset", lastoffset, (long long int)logfstat.st_size);
 		logfstat.st_size = lastoffset;
 	}
 
